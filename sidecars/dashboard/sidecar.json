@@ -1,12 +1,10 @@
 {
   "command": "python",
   "args": [
-    "-m",
-    "ros2_mcp.dashboard.server"
+    "launch.py"
   ],
   "env": {
-    "PYTHONUNBUFFERED": "1",
-    "PYTHONPATH": "."
+    "PYTHONUNBUFFERED": "1"
   },
   "restart_policy": "always",
   "display_name": "ROS 2 Robotics Dashboard",
