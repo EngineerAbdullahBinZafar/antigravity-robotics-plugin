@@ -4,27 +4,28 @@
    ========================================================================== */
 
 :root {
-  --bg-main: #090D16;
-  --bg-card: #111726;
-  --bg-card-hover: #162035;
-  --bg-elevated: #1A243B;
-  --bg-input: #0D1322;
+  /* Aerospace / Zero-G Antigravity Specification Palette */
+  --bg-main: #12131C;               /* Deep Space Charcoal: absorbs glare, minimizes eye strain */
+  --bg-card: #1A1D29;               /* Deep Space Charcoal elevated */
+  --bg-card-hover: #222636;
+  --bg-elevated: #2A2F42;           /* Command Module Slate: structures panels without harsh lines */
+  --bg-input: #151722;
 
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-card: #1E293B;
-  --border-focus: #38BDF8;
+  --border-subtle: rgba(226, 232, 240, 0.08);
+  --border-card: #2A2F42;           /* Command Module Slate border */
+  --border-focus: #00F0FF;          /* Neon Cyan focus glow */
 
-  /* Accents */
-  --accent-cyan: #38BDF8;
-  --accent-emerald: #10B981;
-  --accent-amber: #F59E0B;
-  --accent-rose: #EF4444;
-  --accent-purple: #A855F7;
-  --accent-indigo: #6366F1;
+  /* Functional Aerospace Accents */
+  --accent-cyan: #00F0FF;           /* Neon Cyan: Antigravity Field Active, nominal telemetry */
+  --accent-amber: #FFB800;          /* Inertial Amber: Warnings, joint limits, state transitions */
+  --accent-rose: #FF3366;           /* Solar Flare Red: Critical Alarm, E-STOP, protanopia-safe */
+  --accent-emerald: #00E676;        /* Sub-nominal confirmation */
+  --accent-purple: #9D4EDD;         /* Secondary telemetry axis */
+  --accent-indigo: #00F0FF;         /* Primary action button accent */
 
-  /* Typography */
-  --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
+  /* Vibration-Resistant Typography (Exceeding 7:1 WCAG AAA Contrast) */
+  --text-primary: #E2E8F0;          /* High-Readability Silver-White (avoids white halo under vibration) */
+  --text-secondary: #94A3B8;        /* Slate Silver */
   --text-muted: #64748B;
 
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif;
@@ -35,9 +36,9 @@
   --radius-lg: 14px;
   --radius-full: 9999px;
 
-  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
-  --shadow-glow-cyan: 0 0 16px rgba(56, 189, 248, 0.25);
-  --shadow-glow-emerald: 0 0 16px rgba(16, 185, 129, 0.25);
+  --shadow-card: 0 4px 24px -2px rgba(0, 0, 0, 0.6);
+  --shadow-glow-cyan: 0 0 18px rgba(0, 240, 255, 0.35);
+  --shadow-glow-red: 0 0 20px rgba(255, 51, 102, 0.45);
 }
 
 *, *::before, *::after {
@@ -132,9 +133,9 @@ body {
 }
 
 .pill-badge.state-connected {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: rgba(16, 185, 129, 0.35);
-  color: #34D399;
+  background: rgba(0, 240, 255, 0.12);
+  border-color: rgba(0, 240, 255, 0.35);
+  color: #00F0FF;
 }
 
 .pill-badge.state-disconnected {
@@ -147,8 +148,8 @@ body {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #10B981;
-  box-shadow: 0 0 8px #10B981;
+  background: #00F0FF;
+  box-shadow: 0 0 10px #00F0FF;
 }
 
 .pill-label {
@@ -183,12 +184,14 @@ body {
 }
 
 .btn-primary {
-  background: var(--accent-indigo);
-  color: #FFFFFF;
-  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
+  background: var(--accent-cyan);
+  color: #12131C;
+  font-weight: 700;
+  box-shadow: 0 2px 12px rgba(0, 240, 255, 0.35);
 }
 .btn-primary:hover {
-  background: #4F46E5;
+  background: #33F3FF;
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.6);
 }
 
 .btn-secondary {
@@ -202,17 +205,17 @@ body {
 }
 
 .btn-estop {
-  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+  background: linear-gradient(135deg, #FF3366 0%, #D81B50 100%);
   color: #FFFFFF;
   font-weight: 700;
   letter-spacing: 0.03em;
   padding: 8px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 2px 12px rgba(220, 38, 38, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 14px rgba(255, 51, 102, 0.45);
 }
 .btn-estop:hover {
-  background: #EF4444;
-  box-shadow: 0 2px 16px rgba(239, 68, 68, 0.65);
+  background: #FF4D7D;
+  box-shadow: 0 0 20px rgba(255, 51, 102, 0.7);
 }
 
 .btn-chip {
@@ -228,7 +231,7 @@ body {
 }
 .btn-chip.active {
   background: var(--accent-cyan);
-  color: #090D16;
+  color: #12131C;
   border-color: var(--accent-cyan);
   font-weight: 700;
 }
@@ -244,13 +247,13 @@ body {
 }
 
 .alert-danger {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #FCA5A5;
+  background: rgba(255, 51, 102, 0.12);
+  border: 1px solid rgba(255, 51, 102, 0.4);
+  color: #FFA3BA;
 }
 
 .btn-light-danger {
-  background: #EF4444;
+  background: #FF3366;
   color: #FFFFFF;
   padding: 6px 14px;
   font-size: 12px;
@@ -425,11 +428,11 @@ body {
   max-width: 380px;
   margin: 0 auto;
   aspect-ratio: 1 / 1;
-  background: #060911;
-  border: 1px solid rgba(56, 189, 248, 0.2);
+  background: #12131C;
+  border: 1px solid rgba(0, 240, 255, 0.25);
   border-radius: 50%;
   overflow: hidden;
-  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.08);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.9), 0 0 24px rgba(0, 240, 255, 0.15);
 }
 
 #lidar-canvas {
@@ -485,10 +488,11 @@ body {
   font-family: var(--font-mono);
 }
 
-.text-emerald { color: #34D399; }
-.text-cyan { color: #38BDF8; }
+.text-emerald { color: #00E676; }
+.text-cyan { color: #00F0FF; }
 .text-purple { color: #C084FC; }
-.text-amber { color: #FBBF24; }
+.text-amber { color: #FFB800; }
+.text-rose { color: #FF3366; }
 
 /* ── Interactive D-Pad ─────────────────────────────────────────────── */
 .dpad-wrapper {
@@ -512,47 +516,48 @@ body {
 .dpad-btn {
   width: 82px;
   height: 82px;
-  background: linear-gradient(180deg, #1A243B 0%, #121A2B 100%);
-  border: 1px solid #2B3956;
+  background: linear-gradient(180deg, #2A2F42 0%, #1A1D29 100%);
+  border: 1px solid #3A425C;
   border-radius: var(--radius-lg);
-  color: #FFFFFF;
+  color: var(--text-primary);
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   transition: all 0.1s ease;
   user-select: none;
 }
 
 .dpad-btn:hover {
-  background: linear-gradient(180deg, #222F4C 0%, #182238 100%);
+  background: linear-gradient(180deg, #323952 0%, #222638 100%);
   border-color: var(--accent-cyan);
-  box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.35);
 }
 
 .dpad-btn:active, .dpad-btn.pressed {
   transform: scale(0.93);
-  background: #38BDF8;
-  color: #090D16;
-  border-color: #38BDF8;
-  box-shadow: 0 0 20px #38BDF8;
+  background: var(--accent-cyan);
+  color: #12131C;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 22px rgba(0, 240, 255, 0.8);
 }
 
 .dpad-center {
-  background: linear-gradient(180deg, #371D22 0%, #2A1418 100%);
-  border-color: #632228;
+  background: linear-gradient(180deg, #3A1B24 0%, #2A141A 100%);
+  border-color: #632332;
 }
 .dpad-center:hover {
-  background: #7F1D1D;
-  border-color: #EF4444;
+  background: #FF3366;
+  border-color: #FF3366;
+  box-shadow: 0 0 18px rgba(255, 51, 102, 0.5);
 }
 .dpad-center:active, .dpad-center.pressed {
-  background: #EF4444;
+  background: #FF3366;
   color: #FFFFFF;
-  box-shadow: 0 0 20px #EF4444;
+  box-shadow: 0 0 24px #FF3366;
 }
 
 .dpad-arrow {

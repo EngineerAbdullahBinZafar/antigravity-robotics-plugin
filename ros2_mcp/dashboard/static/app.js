@@ -295,9 +295,9 @@
       // Background Circle
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-      ctx.fillStyle = '#060A13';
+      ctx.fillStyle = '#12131C';
       ctx.fill();
-      ctx.strokeStyle = '#1E293B';
+      ctx.strokeStyle = '#2A2F42';
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
@@ -305,7 +305,7 @@
       [0.25, 0.5, 0.75, 1.0].forEach((ratio, idx) => {
         ctx.beginPath();
         ctx.arc(cx, cy, radius * ratio, 0, Math.PI * 2);
-        ctx.strokeStyle = idx === 3 ? 'rgba(56, 189, 248, 0.3)' : 'rgba(255, 255, 255, 0.07)';
+        ctx.strokeStyle = idx === 3 ? 'rgba(0, 240, 255, 0.35)' : 'rgba(226, 232, 240, 0.08)';
         ctx.lineWidth = 1;
         ctx.setLineDash([3, 4]);
         ctx.stroke();
@@ -318,7 +318,7 @@
       ctx.lineTo(cx, cy + radius);
       ctx.moveTo(cx - radius, cy);
       ctx.lineTo(cx + radius, cy);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+      ctx.strokeStyle = 'rgba(226, 232, 240, 0.08)';
       ctx.lineWidth = 1;
       ctx.stroke();
 
@@ -327,8 +327,8 @@
       const sweepAngle = State.radarAngle;
 
       const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-      grad.addColorStop(0, 'rgba(56, 189, 248, 0.25)');
-      grad.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
+      grad.addColorStop(0, 'rgba(0, 240, 255, 0.3)');
+      grad.addColorStop(1, 'rgba(0, 240, 255, 0.0)');
 
       ctx.save();
       ctx.beginPath();
@@ -342,7 +342,7 @@
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.lineTo(cx + Math.cos(sweepAngle) * radius, cy + Math.sin(sweepAngle) * radius);
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.9)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.restore();
@@ -364,18 +364,18 @@
         ctx.beginPath();
         ctx.arc(px, py, 3, 0, Math.PI * 2);
 
-        // Color by proximity: Red (<0.6m), Amber (<1.5m), Emerald (>1.5m)
+        // Color by proximity: Solar Flare Red (<0.6m), Inertial Amber (<1.5m), Neon Cyan (>1.5m)
         if (ptDist < 0.6) {
-          ctx.fillStyle = '#EF4444';
-          ctx.shadowColor = '#EF4444';
+          ctx.fillStyle = '#FF3366';
+          ctx.shadowColor = '#FF3366';
           ctx.shadowBlur = 8;
         } else if (ptDist < 1.5) {
-          ctx.fillStyle = '#F59E0B';
-          ctx.shadowColor = '#F59E0B';
+          ctx.fillStyle = '#FFB800';
+          ctx.shadowColor = '#FFB800';
           ctx.shadowBlur = 5;
         } else {
-          ctx.fillStyle = '#10B981';
-          ctx.shadowColor = '#10B981';
+          ctx.fillStyle = '#00F0FF';
+          ctx.shadowColor = '#00F0FF';
           ctx.shadowBlur = 3;
         }
         ctx.fill();
@@ -389,16 +389,18 @@
         if (minDistance < 0.6) {
           DOM.closestObstacleDist.className = 'metric-value text-rose';
           if (DOM.radarProximityBadge) {
-            DOM.radarProximityBadge.textContent = '🔴 Obstacle Close';
-            DOM.radarProximityBadge.style.background = 'rgba(239, 68, 68, 0.2)';
-            DOM.radarProximityBadge.style.color = '#FCA5A5';
+            DOM.radarProximityBadge.textContent = '🔺 Obstacle Close';
+            DOM.radarProximityBadge.style.background = 'rgba(255, 51, 102, 0.2)';
+            DOM.radarProximityBadge.style.color = '#FFA3BA';
+            DOM.radarProximityBadge.style.borderColor = 'rgba(255, 51, 102, 0.4)';
           }
         } else {
-          DOM.closestObstacleDist.className = 'metric-value text-emerald';
+          DOM.closestObstacleDist.className = 'metric-value text-cyan';
           if (DOM.radarProximityBadge) {
-            DOM.radarProximityBadge.textContent = '🟢 Path Clear';
-            DOM.radarProximityBadge.style.background = 'rgba(16, 185, 129, 0.15)';
-            DOM.radarProximityBadge.style.color = '#34D399';
+            DOM.radarProximityBadge.textContent = '🔷 Path Clear';
+            DOM.radarProximityBadge.style.background = 'rgba(0, 240, 255, 0.15)';
+            DOM.radarProximityBadge.style.color = '#00F0FF';
+            DOM.radarProximityBadge.style.borderColor = 'rgba(0, 240, 255, 0.3)';
           }
         }
       }
