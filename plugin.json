@@ -6,7 +6,8 @@
   "description": "Native Antigravity plugin for ROS 2 robotics telemetry, node/topic monitoring, PID tuning, trajectory prediction, and interactive web dashboard.",
   "logo": "assets/logo.svg",
   "author": {
-    "name": "Antigravity Robotics Team"
+    "name": "Abdullah Bin Zafar",
+    "url": "https://github.com/EngineerAbdullahBinZafar"
   },
   "license": "Apache-2.0",
   "keywords": [

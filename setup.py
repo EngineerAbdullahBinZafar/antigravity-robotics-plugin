@@ -3,8 +3,8 @@ from setuptools import find_packages, setup
 setup(
     name="antigravity-robotics-plugin",
     version="1.2.0",
-    author="Antigravity Robotics Team",
-    author_email="robotics@agent-plugins.org",
+    author="Abdullah Bin Zafar",
+    author_email="abz.king.1.9.2003@gmail.com",
     description="Native Antigravity Plugin packaging ROS 2 MCP Server with interactive Web Dashboard.",
     long_description=open("README.md", encoding="utf-8").read()
     if open("README.md").readable()
@@ -16,7 +16,7 @@ setup(
     extras_require={
         "rosbridge": ["websocket-client>=1.6.0"],
         "dashboard": ["aiohttp>=3.9.0"],
-        "dev": ["pytest>=7.4", "pytest-cov>=4.0", "ruff>=0.4"],
+        "dev": ["pytest>=7.4", "pytest-cov>=4.0", "pytest-asyncio>=0.23", "ruff>=0.4"],
     },
     entry_points={
         "console_scripts": [

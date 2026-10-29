@@ -8,7 +8,7 @@ version = "1.2.0"
 description = "Native Antigravity plugin for ROS 2 robotics telemetry, control, diagnostics, and multi-robot fleet management."
 readme = "README.md"
 license = { text = "Apache-2.0" }
-authors = [{ name = "Antigravity Robotics Team", email = "robotics@agent-plugins.org" }]
+authors = [{ name = "Abdullah Bin Zafar", email = "abz.king.1.9.2003@gmail.com" }]
 requires-python = ">=3.10"
 keywords = [
     "antigravity", "ros2", "mcp", "model-context-protocol",
