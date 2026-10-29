@@ -1,0 +1,9 @@
+<library path="antigravity_rviz_panel">
+  <class name="antigravity_rviz_panel/AntigravityTelemetryPanel"
+         type="antigravity_rviz_panel::AntigravityTelemetryPanel"
+         base_class_type="rviz_common::Panel">
+    <description>
+      Zero-G Aerospace Telemetry, Motion Controller, and E-STOP Panel for Antigravity Robotics.
+    </description>
+  </class>
+</library>

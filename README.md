@@ -3,13 +3,14 @@
 <img src="assets/logo.svg" alt="Antigravity Robotics Plugin Logo" width="160" height="160" />
 
 # Antigravity ROS 2 Robotics Plugin
-### `antigravity-robotics-plugin`
+### `antigravity-robotics-plugin` • v1.2.0
 
-**Native Antigravity Plugin & Model Context Protocol (MCP) Server for ROS 2 Autonomous Robotics**
+**Native Antigravity Plugin, Model Context Protocol (MCP) Server & Zero-G Aerospace Suite for ROS 2 Autonomous Robotics**
 
 [![Antigravity Plugin](https://img.shields.io/badge/Antigravity-Native%20Plugin-00F0FF?style=for-the-badge&logo=google&logoColor=white)](https://github.com/EngineerAbdullahBinZafar/antigravity-robotics-plugin)
 [![Tests Passing](https://img.shields.io/badge/Tests-152%2F152%20Passing%20(100%25)-00FFA3?style=for-the-badge&logo=pytest&logoColor=black)](tests/)
 [![Security Sandbox](https://img.shields.io/badge/Sandbox-3--Tier%20Guardrails-FF9100?style=for-the-badge&logo=shield&logoColor=white)](ros2_mcp/sandbox.py)
+[![ROS 2 Compatible](https://img.shields.io/badge/ROS%202-Humble%20%7C%20Jazzy-22314E?style=for-the-badge&logo=ros&logoColor=white)](ros2_packages/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=for-the-badge)](LICENSE)
 [![Python Version](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](pyproject.toml)
 
@@ -23,11 +24,16 @@
 
 ## 🌟 Overview
 
-`antigravity-robotics-plugin` is an enterprise-grade, native **Google Antigravity Plugin** and **Model Context Protocol (MCP)** server engineered to connect autonomous AI agents directly to **ROS 2 (Robot Operating System 2)** environments, digital twin simulations, and physical robotic hardware.
+`antigravity-robotics-plugin` is an enterprise-grade, native **Google Antigravity Plugin**, **Model Context Protocol (MCP)** server, and **Aerospace Zero-G Control Suite** engineered to connect autonomous AI agents directly to **ROS 2 (Robot Operating System 2)** environments, digital twin simulations, and physical robotic hardware.
 
 It empowers Antigravity agents to inspect topics, tune PID control loops, stream 2D LiDAR pointclouds, monitor multi-robot fleets, and execute safe actuator commands protected by a cryptographic and mutex-guarded **3-Tier Command Sandbox**.
 
-It also packages a **Cyber-Industrial Interactive Web Dashboard Sidecar** that docks directly into the Antigravity IDE Aux Pane (`sidecar://antigravity-robotics-plugin/dashboard/index.html`), providing real-time 20Hz telemetry, HTML5 radar canvas, artificial IMU horizon, and an instantaneous dual-action Emergency Stop (E-STOP).
+### 🌌 Complete Multi-Layer Robotics Architecture:
+1. **AI-Agentic Mission Supervisor (Python MCP)**: 16 high-level MCP tools for automated diagnosis, safety checks, and telemetry control.
+2. **Interactive Zero-G Web Dashboard Sidecar**: 4-tab aerospace control station docking right inside the Antigravity IDE Aux Pane (`sidecar://antigravity-robotics-plugin/dashboard/index.html`).
+3. **C++ Lifecycle Node (`antigravity_core`)**: Mission-critical deterministic FSM (`Unconfigured` ➡️ `Configuring` ➡️ `Inactive` ➡️ `Active` ➡️ `Finalized`) with a 250ms hardware watchdog.
+4. **Native RViz2 Qt Panel Plugin (`antigravity_rviz_panel`)**: Desktop companion panel embedding Zero-G velocity gauges and E-STOP directly into desktop RViz2.
+5. **Gazebo Harmonic Zero-G Simulation (`sim/`)**: Orbital microgravity world with 6-DOF thruster dynamics, celestial lighting, and obstacle docking courses.
 
 ---
 
@@ -64,9 +70,39 @@ It also packages a **Cyber-Industrial Interactive Web Dashboard Sidecar** that d
 │      ┌────────────────────────┐         ┌────────────────────────┐     │
 │      │  ROS2NativeInterface   │         │     MockInterface      │     │
 │      │  (rclpy / Hardware)    │         │  (Deterministic Sim)   │     │
-│      └────────────────────────┘         └────────────────────────┘     │
+│      └───────────┬────────────┘         └────────────────────────┘     │
+└──────────────────┼─────────────────────────────────────────────────────┘
+                   ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                   ROS 2 Ecosystem & Physical Actuators                 │
+│                                                                        │
+│   ┌───────────────────────────┐         ┌───────────────────────────┐  │
+│   │ antigravity_core          │         │ antigravity_rviz_panel    │  │
+│   │ (C++ Lifecycle Controller)│         │ (Native RViz2 Qt Panel)   │  │
+│   └─────────────┬─────────────┘         └─────────────▲─────────────┘  │
+│                 │ /cmd_vel /antigravity/thrust_cmd    │                │
+│                 ▼                                     │                │
+│   ┌───────────────────────────────────────────────────┴─────────────┐  │
+│   │            Gazebo Harmonic Zero-G / Hardware Actuators          │  │
+│   │            (6-DOF Thrusters, 360° LiDAR, High-G IMU)            │  │
+│   └─────────────────────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 🎨 Zero-G Aerospace Color Palette & Ergonomics
+
+Designed specifically for harsh lighting fluctuations, polarized visors, and high-vibration aerospace operations (>7:1 WCAG AAA Contrast):
+
+| Role / Element | Palette Token | Hex Code | Functional Intent & Ergonomics |
+| :--- | :--- | :--- | :--- |
+| **Main Surface** | Deep Space Charcoal | `#12131C` | Absorbs screen glare, minimizes eye fatigue in zero-g environments. |
+| **Card / Panel** | Command Module Slate | `#2A2F42` | Clean structural separation of telemetry widgets without harsh white borders. |
+| **Nominal Active**| Neon Cyan | `#00F0FF` | Confirms nominal field telemetry, active joint controllers, and clear path corridors. |
+| **Caution / Alert**| Inertial Amber | `#FFB800` | Joint limits, proximity thresholds (0.6m - 1.5m), and transient FSM states. |
+| **Critical Alarm**| Solar Flare Red | `#FF3366` | Emergency Stop (E-STOP) and obstacle proximity (Protanopia-safe coral red). |
+| **Typography** | Vibration-Proof Silver | `#E2E8F0` | High-readability silver-white eliminating halo effects under thruster vibration. |
 
 ---
 
@@ -107,12 +143,12 @@ To prevent unintended actuation or dangerous physical hardware movement, all too
 
 ## 🖥️ Interactive Web Dashboard & Sidecar
 
-The plugin features a zero-dependency, zero-CDN **Cyber-Industrial Web Dashboard** engineered for high-contrast visibility and responsive real-time control:
+The plugin features a zero-dependency, zero-CDN **Aerospace Web Dashboard** engineered for high-contrast visibility and responsive real-time control:
 
-* **1-Click Connection Workflow:** Instant optimistic connection state machine (<5ms latency) with automatic reconnection.
-* **2D Canvas LiDAR Radar Sweep:** Real-time obstacle visualizer with proximity safety rings and distance markers.
-* **IMU Attitude Horizon:** Pitch, roll, and heading visualizer calibrated to incoming `/imu/data` quaternions.
-* **Dual-Action Emergency Stop (E-STOP):** High-priority UI button + physical keyboard shortcut (`Spacebar` / `Esc`) immediately publishing zero velocities to `/cmd_vel`.
+* **Tactile Drive & Radar (Tab 1):** Clickable D-pad with keyboard arrows (`↑ ↓ ← →` and `Space`), speed profiles (0.2, 0.5, 1.0 m/s), and real-time 360° Canvas LiDAR radar with geometric orientation-agnostic badges (`🔺 Obstacle Close`, `🔷 Path Clear`).
+* **Sensors & Health (Tab 2):** Live battery voltage/amperage progress bar, 3D IMU artificial horizon, and diagnostic alerts.
+* **Engineer Mode (Tab 3):** Real-time ROS 2 computational graph node monitor, topic search/inspection modal, and dynamic PID gain calibration sliders.
+* **Activity Log (Tab 4):** Live timestamped event and audit log stream.
 * **Antigravity Aux Pane Native Link:**
   ```markdown
   [ROS 2 Robotics Dashboard](sidecar://antigravity-robotics-plugin/dashboard/index.html)
@@ -131,21 +167,29 @@ cd antigravity-robotics-plugin
 pip install -e ".[dev,dashboard,rosbridge]"
 ```
 
-### 2. Run Diagnostics Doctor
-Validate environment, ROS 2 discovery, and sandbox permissions:
-
+### 2. Building ROS 2 C++ Packages (Humble / Jazzy)
 ```bash
-python -m ros2_mcp.server --doctor
+# In your ROS 2 colcon workspace:
+mkdir -p ~/ros2_ws/src
+cp -r ros2_packages/* ~/ros2_ws/src/
+cd ~/ros2_ws
+colcon build --symlink-install
+source install/setup.bash
 ```
 
-### 3. Launch Standalone Dashboard
+### 3. Launch Gazebo Harmonic Zero-G Simulation
+```bash
+ros2 launch sim/launch/zero_g_simulation.launch.py
+```
+
+### 4. Launch Standalone Dashboard
 ```bash
 python -m ros2_mcp.dashboard.server --port 8765
 # Or via CLI alias:
 ros2-mcp-dashboard --port 8765
 ```
 
-### 4. Run Automated Test Suite
+### 5. Run Automated Test Suite
 Execute the comprehensive 152-test verification suite:
 
 ```bash
@@ -179,7 +223,7 @@ antigravity-robotics-plugin/
 ├── LICENSE                        # Apache 2.0 Open Source License
 ├── README.md                      # Complete system documentation
 ├── assets/
-│   └── logo.svg                   # Cybernetic vector badge
+│   └── logo.svg                   # Vector logo badge
 ├── rules/
 │   └── AGENTS.md                  # Priority directives & sidecar link rules
 ├── skills/
@@ -187,7 +231,8 @@ antigravity-robotics-plugin/
 │       └── SKILL.md               # Antigravity skill specification
 ├── sidecars/
 │   └── dashboard/
-│       └── sidecar.json           # Aux pane sidecar configuration
+│       ├── sidecar.json           # Aux pane sidecar configuration
+│       └── launch.py              # Robust sidecar launcher
 ├── ros2_mcp/
 │   ├── server.py                  # Core MCP server & JSON-RPC stdio transport
 │   ├── ros2_interface.py          # Dual runtime (ROS2NativeInterface & MockInterface)
@@ -196,9 +241,16 @@ antigravity-robotics-plugin/
 │   └── dashboard/
 │       ├── server.py              # Asynchronous HTTP/SSE/WebSocket streaming server
 │       └── static/
-│           ├── index.html         # Semantic HTML5 dashboard interface
-│           ├── style.css          # Cyber-industrial high-contrast dark theme
-│           └── app.js             # Canvas LiDAR radar, IMU horizon & connection client
+│           ├── index.html         # 4-tab semantic HTML5 dashboard interface
+│           ├── style.css          # Zero-G aerospace dark theme
+│           └── app.js             # 360° LiDAR radar, tactile D-Pad, & telemetry
+├── ros2_packages/
+│   ├── antigravity_core/          # C++ rclcpp_lifecycle::LifecycleNode package
+│   └── antigravity_rviz_panel/    # Native C++/Qt rviz_common::Panel plugin
+├── sim/
+│   ├── worlds/zero_g_orbit.sdf    # Gazebo Harmonic zero-gravity world
+│   ├── models/                    # 6-DOF craft model with thrusters & LiDAR
+│   └── launch/                    # ROS 2 Gazebo simulation launch pipeline
 └── tests/                         # 152 passing automated tests
 ```
 

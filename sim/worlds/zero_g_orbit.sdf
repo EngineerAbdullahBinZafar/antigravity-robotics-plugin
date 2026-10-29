@@ -1,0 +1,81 @@
+<?xml version="1.0" ?>
+<sdf version="1.8">
+  <world name="zero_g_orbit">
+    <!-- Physical Engine Parameters -->
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <!-- Zero-G Gravity Vector -->
+    <gravity>0 0 0</gravity>
+    <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
+    <atmosphere type="adiabatic"/>
+
+    <!-- Orbital Ambient & Directional Sun Lighting -->
+    <scene>
+      <ambient>0.15 0.18 0.25 1.0</ambient>
+      <background>0.07 0.07 0.11 1.0</background>
+      <shadows>true</shadows>
+      <grid>false</grid>
+    </scene>
+
+    <light type="directional" name="solar_irradiance">
+      <cast_shadows>true</cast_shadows>
+      <pose>50 100 80 0 0 0</pose>
+      <diffuse>0.95 0.95 1.0 1</diffuse>
+      <specular>0.8 0.8 0.8 1</specular>
+      <direction>-0.4 -0.8 -0.5</direction>
+    </light>
+
+    <!-- Space Station Docking Anchor Frame -->
+    <model name="docking_station_core">
+      <static>true</static>
+      <pose>0 0 -5 0 0 0</pose>
+      <link name="station_frame">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>3.0</radius>
+              <length>1.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="station_visual">
+          <geometry>
+            <cylinder>
+              <radius>3.0</radius>
+              <length>1.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.2 0.25 0.35 1</ambient>
+            <diffuse>0.3 0.4 0.55 1</diffuse>
+            <specular>0.6 0.7 0.8 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Orbital Obstacle Target Ring -->
+    <model name="orbital_waypoint_alpha">
+      <static>true</static>
+      <pose>0 12 0 0 0 0</pose>
+      <link name="ring_link">
+        <visual name="ring_vis">
+          <geometry>
+            <cylinder>
+              <radius>1.5</radius>
+              <length>0.15</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.0 0.8 0.9 1</ambient>
+            <diffuse>0.0 0.94 1.0 1</diffuse>
+            <emissive>0.0 0.5 0.6 1</emissive>
+          </material>
+        </visual>
+      </link>
+    </model>
+  </world>
+</sdf>
