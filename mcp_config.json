@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "ros2": {
+      "command": "python",
+      "args": [
+        "-m",
+        "ros2_mcp.server"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1",
+        "PYTHONPATH": ".",
+        "SAFETY_LEVEL": "safe_write",
+        "ROS_SAFETY_LEVEL": "safe_write"
+      }
+    }
+  }
+}

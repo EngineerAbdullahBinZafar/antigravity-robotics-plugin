@@ -1,0 +1,25 @@
+{
+  "command": "python",
+  "args": [
+    "-m",
+    "ros2_mcp.dashboard.server"
+  ],
+  "env": {
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONPATH": "."
+  },
+  "restart_policy": "always",
+  "display_name": "ROS 2 Robotics Dashboard",
+  "description": "Interactive telemetry dashboard for ROS 2 MCP Server with real-time 360° LiDAR radar, node/topic explorer, and 1-click connection.",
+  "has_web_ui": true,
+  "ui_config": {
+    "display_name": "ROS 2 Robotics Dashboard",
+    "views": [
+      {
+        "title": "ROS 2 Telemetry & Control",
+        "path": "/index.html",
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE"
+      }
+    ]
+  }
+}

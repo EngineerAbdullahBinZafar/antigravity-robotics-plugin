@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "antigravity-robotics-plugin"
+version = "1.2.0"
+description = "Native Antigravity plugin for ROS 2 robotics telemetry, control, diagnostics, and multi-robot fleet management."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Antigravity Robotics Team", email = "robotics@agent-plugins.org" }]
+requires-python = ">=3.10"
+keywords = [
+    "antigravity", "ros2", "mcp", "model-context-protocol",
+    "robotics", "autonomous-systems", "ai-agents", "digital-twin",
+    "kinematics", "pid-tuning", "lidar", "swarm"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+]
+dependencies = []
+
+[project.optional-dependencies]
+rosbridge = ["websocket-client>=1.6.0"]
+dashboard = ["aiohttp>=3.9.0"]
+dev       = ["pytest>=7.4", "pytest-cov>=4.0", "pytest-asyncio>=0.23", "ruff>=0.4"]
+
+[project.scripts]
+ros2-mcp = "ros2_mcp.server:main"
+ros2-mcp-server = "ros2_mcp.server:main"
+antigravity-robotics = "ros2_mcp.server:main"
+ros2-mcp-dashboard = "ros2_mcp.dashboard.server:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ros2_mcp*"]
+
+[tool.setuptools.package-data]
+"ros2_mcp.dashboard" = ["static/*", "static/**/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

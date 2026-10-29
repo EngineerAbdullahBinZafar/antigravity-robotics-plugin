@@ -1,0 +1,28 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "antigravity-robotics-plugin",
+  "displayName": "Antigravity ROS 2 Robotics",
+  "version": "1.2.0",
+  "description": "Native Antigravity plugin for ROS 2 robotics telemetry, node/topic monitoring, PID tuning, trajectory prediction, and interactive web dashboard.",
+  "logo": "assets/logo.svg",
+  "author": {
+    "name": "Antigravity Robotics Team"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "ros2",
+    "robotics",
+    "mcp",
+    "telemetry",
+    "dashboard",
+    "pid-tuning",
+    "simulation",
+    "antigravity"
+  ],
+  "suggestedPrompts": [
+    "Run system diagnostics on the robot and check battery, LiDAR, and IMU health",
+    "Open the ROS 2 Robotics Dashboard and monitor active topics and nodes",
+    "Simulate trajectory and verify predictive safety bounds before publishing velocity commands"
+  ],
+  "disabled": false
+}
