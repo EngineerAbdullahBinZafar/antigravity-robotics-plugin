@@ -3,417 +3,396 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ROS 2 Antigravity Mission Control</title>
+  <title>ROS 2 Robotics Studio</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Cyber Scanline Overlay -->
-  <div class="scanline-overlay" aria-hidden="true"></div>
-
-  <!-- Main Application Wrapper -->
   <div id="app" class="app-container">
 
-    <!-- Top Navigation / Command Bar -->
-    <header class="top-bar">
+    <!-- Top Navigation Header -->
+    <header class="top-nav">
       <div class="brand">
-        <!-- Embedded SVG Robot Emblem -->
-        <svg class="brand-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="4" y="8" width="24" height="18" rx="4" stroke="currentColor" stroke-width="2"/>
-          <circle cx="11" cy="16" r="2.5" fill="currentColor"/>
-          <circle cx="21" cy="16" r="2.5" fill="currentColor"/>
-          <path d="M12 21H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <path d="M16 2V8" stroke="currentColor" stroke-width="2"/>
-          <circle cx="16" cy="2" r="1.5" fill="currentColor"/>
-          <line x1="2" y1="14" x2="4" y2="14" stroke="currentColor" stroke-width="2"/>
-          <line x1="28" y1="14" x2="30" y2="14" stroke="currentColor" stroke-width="2"/>
-        </svg>
-        <div class="brand-text">
-          <span class="brand-title">ROS 2 ANTIGRAVITY</span>
-          <span class="brand-subtitle">MISSION CONTROL v1.0.0</span>
+        <div class="brand-avatar">🤖</div>
+        <div class="brand-info">
+          <h1 class="brand-title">ROS 2 Robotics Studio</h1>
+          <p class="brand-subtitle">Interactive Control &amp; Autonomous Telemetry</p>
         </div>
       </div>
 
-      <!-- Live Indicators -->
-      <div class="top-status-group">
-        <!-- Connection State Badge -->
-        <div id="connection-badge" class="status-badge state-disconnected">
-          <span class="badge-dot"></span>
-          <span id="connection-status-text" class="badge-text">DISCONNECTED</span>
+      <div class="top-status-pills">
+        <!-- Live Connection State -->
+        <div id="connection-badge" class="pill-badge state-connected">
+          <span class="status-dot"></span>
+          <span id="connection-status-text">Virtual Robot Active</span>
         </div>
 
-        <!-- Latency Counter -->
-        <div class="telemetry-pill" title="WebSocket Roundtrip Latency">
-          <span class="pill-label">RTT:</span>
-          <span id="latency-val" class="pill-value">-- ms</span>
+        <!-- Latency -->
+        <div class="pill-badge pill-neutral" title="Network Roundtrip Latency">
+          <span class="pill-label">Ping:</span>
+          <span id="latency-val">-- ms</span>
         </div>
 
-        <!-- Sandbox Security Badge -->
-        <div id="sandbox-badge" class="sandbox-badge" title="Active Security Level">
-          <!-- Shield SVG -->
-          <svg class="sandbox-icon" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/>
-          </svg>
+        <!-- Safety Level -->
+        <div class="pill-badge pill-neutral" title="Sandbox Safety Level">
+          <span class="pill-label">Safety:</span>
           <span id="sandbox-status-text">SAFE_WRITE</span>
         </div>
       </div>
 
-      <!-- Action Controls -->
-      <div class="top-actions">
-        <!-- Emergency Stop Button -->
-        <button id="btn-estop" class="btn-estop" title="Emergency Stop (Space / Esc)">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-          </svg>
-          <span class="estop-label">E-STOP</span>
+      <div class="top-controls">
+        <!-- 1-Click Toggle Connect -->
+        <button id="btn-connect" class="btn btn-secondary" title="Connect or Pause Robot">
+          <span id="btn-connect-icon">⏸️</span>
+          <span id="btn-connect-text">Pause Robot</span>
         </button>
 
-        <!-- 1-Click Connection Button -->
-        <button id="btn-connect" class="btn-primary">
-          <span class="btn-spinner hidden"></span>
-          <span id="btn-connect-text">Connect ROS 2</span>
+        <!-- Big Emergency Stop -->
+        <button id="btn-estop" class="btn btn-estop" title="Emergency Stop (Hotkey: Spacebar)">
+          <span class="estop-icon">🛑</span>
+          <span class="estop-text">EMERGENCY STOP</span>
         </button>
       </div>
     </header>
 
-    <!-- Emergency Stop Banner (Hidden by default) -->
-    <div id="estop-banner" class="estop-banner hidden">
-      <div class="estop-banner-content">
-        <span class="estop-warning-sign">⚠️</span>
-        <div class="estop-text-block">
-          <strong>EMERGENCY STOP ACTIVATED</strong>
-          <span>All robot motion halted. Velocity commands clamped to 0.00 m/s.</span>
+    <!-- Emergency Stop Alert Banner (Shown when E-STOP active) -->
+    <div id="estop-banner" class="alert-banner alert-danger hidden">
+      <div class="alert-icon">⚠️</div>
+      <div class="alert-body">
+        <strong>EMERGENCY STOP ACTIVATED</strong>
+        <p>All motors and velocities have been clamped to 0.00 m/s for safety.</p>
+      </div>
+      <button id="btn-estop-reset" class="btn btn-light-danger">RE-ARM SAFETY &amp; RESUME</button>
+    </div>
+
+    <!-- Friendly Quick Start Card ("कोई बच्चा भी चला सके") -->
+    <section class="guide-banner" id="guide-banner">
+      <div class="guide-header">
+        <span class="guide-sparkle">💡</span>
+        <span class="guide-title"><strong>Quick Start:</strong> How to use your robot</span>
+        <button id="btn-dismiss-guide" class="btn-text" title="Dismiss guide">✕</button>
+      </div>
+      <div class="guide-steps">
+        <div class="guide-step">
+          <div class="step-num">1</div>
+          <div class="step-info">
+            <strong>Drive the Robot</strong>
+            <span>Use the <strong>Direction Pad</strong> below or your keyboard <strong>Arrow Keys</strong> (↑ ↓ ← →) to steer!</span>
+          </div>
         </div>
-        <button id="btn-estop-reset" class="btn-estop-reset">RE-ARM SAFETY</button>
+        <div class="guide-step">
+          <div class="step-num">2</div>
+          <div class="step-info">
+            <strong>Check the Radar</strong>
+            <span>The green <strong>360° LiDAR Radar</strong> detects walls and obstacles in real-time.</span>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="step-num">3</div>
+          <div class="step-info">
+            <strong>Emergency Stop</strong>
+            <span>Hit the red <strong>Emergency Stop</strong> button or press <strong>Spacebar</strong> anytime to freeze motion.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs" role="tablist">
+      <button class="tab-btn active" data-tab="drive">🕹️ Drive &amp; Radar</button>
+      <button class="tab-btn" data-tab="sensors">📊 Sensors &amp; Health</button>
+      <button class="tab-btn" data-tab="engineer">🛠️ Engineer Mode (Topics &amp; Nodes)</button>
+      <button class="tab-btn" data-tab="logs">📜 Activity Log</button>
+    </nav>
+
+    <!-- TAB 1: Drive & Radar (Main Interactive Experience) -->
+    <div id="tab-drive" class="tab-content active">
+      <div class="drive-radar-grid">
+
+        <!-- 360 LiDAR Radar Card -->
+        <section class="card radar-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon">📡</span>
+              <div>
+                <h2>360° LiDAR Obstacle Radar</h2>
+                <p class="card-desc">Shows distance to objects around your robot in real-time</p>
+              </div>
+            </div>
+            <div class="radar-badge" id="radar-proximity-badge">🟢 Path Clear</div>
+          </div>
+
+          <div class="radar-canvas-box">
+            <canvas id="lidar-canvas" width="380" height="380"></canvas>
+            <div class="radar-center-marker" title="Your Robot Center">🤖</div>
+          </div>
+
+          <div class="metrics-row">
+            <div class="metric-card">
+              <span class="metric-label">Front Clearance</span>
+              <span class="metric-value text-emerald" id="closest-obstacle-dist">-- m</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Drive Speed</span>
+              <span class="metric-value text-cyan" id="telemetry-lin-vel">0.00 m/s</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Turn Rate</span>
+              <span class="metric-value text-purple" id="telemetry-ang-vel">0.00 rad/s</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Battery Level</span>
+              <span class="metric-value text-amber" id="quick-battery-pct">-- %</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Remote Driving Pad (Teleoperation) -->
+        <section class="card control-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="card-icon">🕹️</span>
+              <div>
+                <h2>Drive Remote Control</h2>
+                <p class="card-desc">Click buttons or use Arrow Keys to steer the robot</p>
+              </div>
+            </div>
+            <div class="speed-toggle-group">
+              <button class="btn-chip" data-speed="0.2">🐢 0.2 m/s</button>
+              <button class="btn-chip active" data-speed="0.5">🚶 0.5 m/s</button>
+              <button class="btn-chip" data-speed="1.0">⚡ 1.0 m/s</button>
+            </div>
+          </div>
+
+          <!-- Tactile D-Pad -->
+          <div class="dpad-wrapper">
+            <div class="dpad">
+              <button id="btn-drive-fwd" class="dpad-btn dpad-up" title="Drive Forward (↑)">
+                <span class="dpad-arrow">▲</span>
+                <span class="dpad-label">FORWARD</span>
+              </button>
+              <div class="dpad-middle-row">
+                <button id="btn-drive-left" class="dpad-btn dpad-left" title="Turn Left (←)">
+                  <span class="dpad-arrow">◀</span>
+                  <span class="dpad-label">LEFT</span>
+                </button>
+                <button id="btn-drive-stop" class="dpad-btn dpad-center" title="Halt Motion (Space)">
+                  <span class="dpad-arrow">⏹</span>
+                  <span class="dpad-label">STOP</span>
+                </button>
+                <button id="btn-drive-right" class="dpad-btn dpad-right" title="Turn Right (→)">
+                  <span class="dpad-arrow">▶</span>
+                  <span class="dpad-label">RIGHT</span>
+                </button>
+              </div>
+              <button id="btn-drive-rev" class="dpad-btn dpad-down" title="Drive Reverse (↓)">
+                <span class="dpad-arrow">▼</span>
+                <span class="dpad-label">REVERSE</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Motion Feedback Banner -->
+          <div class="motion-feedback" id="motion-feedback">
+            <span id="motion-feedback-icon">⏹️</span>
+            <span id="motion-feedback-text">Robot is currently stopped. Press an arrow to drive!</span>
+          </div>
+
+          <!-- Mode Info Card -->
+          <div class="mode-info-box">
+            <div class="mode-info-icon">💡</div>
+            <div class="mode-info-text">
+              <strong>Safe Simulation Active:</strong> You are controlling a virtual robot with realistic obstacle collision detection and odometry.
+            </div>
+          </div>
+        </section>
+
       </div>
     </div>
 
-    <!-- Main Command Grid (3 Columns) -->
-    <main class="dashboard-grid">
+    <!-- TAB 2: Sensors & Health -->
+    <div id="tab-sensors" class="tab-content">
+      <div class="sensors-grid">
 
-      <!-- COLUMN 1: System Health & Diagnostics -->
-      <section class="card panel-health">
-        <div class="card-header">
-          <div class="card-title">
-            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-            </svg>
-            <h2>SYSTEM HEALTH</h2>
+        <!-- Battery Health -->
+        <section class="card">
+          <div class="card-header">
+            <span class="card-icon">🔋</span>
+            <h2>Battery &amp; Power Health</h2>
           </div>
-          <span id="overall-health-badge" class="tag tag-emerald">HEALTHY</span>
-        </div>
-
-        <div class="card-body">
-          <!-- Battery Widget -->
-          <div class="health-widget battery-widget">
-            <div class="battery-ring-container">
-              <svg class="battery-ring-svg" viewBox="0 0 100 100">
-                <circle class="ring-bg" cx="50" cy="50" r="42" stroke-width="8"/>
-                <circle id="battery-progress-ring" class="ring-fg" cx="50" cy="50" r="42" stroke-width="8"/>
-              </svg>
-              <div class="battery-center-text">
-                <span id="battery-pct-text" class="battery-pct">88%</span>
-                <span class="battery-label">CAPACITY</span>
-              </div>
+          <div class="battery-display">
+            <div class="battery-meter-container">
+              <div class="battery-level-bar" id="battery-bar" style="width: 85%;"></div>
             </div>
-            <div class="battery-metrics">
-              <div class="metric-row">
-                <span class="metric-label">VOLTAGE</span>
-                <span id="battery-voltage-text" class="metric-val">24.2 V</span>
+            <div class="battery-details-grid">
+              <div class="detail-box">
+                <span class="detail-label">Charge Remaining</span>
+                <strong class="detail-val" id="battery-pct-text">85%</strong>
               </div>
-              <div class="metric-row">
-                <span class="metric-label">CURRENT</span>
-                <span id="battery-current-text" class="metric-val">-3.4 A</span>
+              <div class="detail-box">
+                <span class="detail-label">Pack Voltage</span>
+                <strong class="detail-val" id="battery-voltage-text">24.2 V</strong>
               </div>
-              <div class="metric-row">
-                <span class="metric-label">STATUS</span>
-                <span id="battery-state-text" class="metric-val text-emerald">Discharging</span>
+              <div class="detail-box">
+                <span class="detail-label">Draw Current</span>
+                <strong class="detail-val" id="battery-current-text">-3.4 A</strong>
+              </div>
+              <div class="detail-box">
+                <span class="detail-label">Health Status</span>
+                <strong class="detail-val text-emerald" id="battery-state-text">Nominal</strong>
               </div>
             </div>
           </div>
+        </section>
 
-          <!-- IMU Attitude Widget -->
-          <div class="health-widget imu-widget">
-            <h3 class="widget-subtitle">IMU ATTITUDE (6-DOF)</h3>
-            <div class="imu-container">
-              <!-- Artificial Horizon / Gimbal Visualizer -->
-              <div class="gimbal-frame">
-                <div id="horizon-pitch-ladder" class="horizon-ladder">
-                  <div class="horizon-line horizon-sky"></div>
-                  <div class="horizon-line horizon-ground"></div>
-                </div>
-                <!-- Fixed Center Reticle -->
-                <div class="reticle-center"></div>
-              </div>
-              <!-- Digital Angles -->
-              <div class="imu-readouts">
-                <div class="imu-cell">
-                  <span class="imu-cell-label">ROLL</span>
-                  <span id="imu-roll-text" class="imu-cell-val">0.0°</span>
-                </div>
-                <div class="imu-cell">
-                  <span class="imu-cell-label">PITCH</span>
-                  <span id="imu-pitch-text" class="imu-cell-val">0.0°</span>
-                </div>
-                <div class="imu-cell">
-                  <span class="imu-cell-label">YAW</span>
-                  <span id="imu-yaw-text" class="imu-cell-val">180.0°</span>
-                </div>
-                <div class="imu-cell">
-                  <span class="imu-cell-label">Z-ACCEL</span>
-                  <span id="imu-zaccel-text" class="imu-cell-val">9.81</span>
-                </div>
-              </div>
+        <!-- IMU Attitude -->
+        <section class="card">
+          <div class="card-header">
+            <span class="card-icon">🧭</span>
+            <h2>IMU 3D Orientation &amp; Tilt</h2>
+          </div>
+          <div class="imu-details-grid">
+            <div class="detail-box">
+              <span class="detail-label">Roll (Tilt Left/Right)</span>
+              <strong class="detail-val" id="imu-roll-text">0.0°</strong>
+            </div>
+            <div class="detail-box">
+              <span class="detail-label">Pitch (Nose Up/Down)</span>
+              <strong class="detail-val" id="imu-pitch-text">0.0°</strong>
+            </div>
+            <div class="detail-box">
+              <span class="detail-label">Yaw (Heading)</span>
+              <strong class="detail-val" id="imu-yaw-text">180.0°</strong>
+            </div>
+            <div class="detail-box">
+              <span class="detail-label">Z-Acceleration</span>
+              <strong class="detail-val text-cyan" id="imu-zaccel-text">9.81 m/s²</strong>
             </div>
           </div>
+        </section>
 
-          <!-- Hardware Diagnostics Matrix -->
-          <div class="health-widget sensor-matrix-widget">
-            <h3 class="widget-subtitle">SENSOR INTEGRITY</h3>
-            <div class="sensor-grid">
-              <div class="sensor-chip" id="sensor-lidar">
-                <span class="chip-dot dot-emerald"></span>
-                <span class="chip-name">LiDAR</span>
-                <span class="chip-status">360° OK</span>
-              </div>
-              <div class="sensor-chip" id="sensor-imu">
-                <span class="chip-dot dot-emerald"></span>
-                <span class="chip-name">IMU</span>
-                <span class="chip-status">NOMINAL</span>
-              </div>
-              <div class="sensor-chip" id="sensor-motors">
-                <span class="chip-dot dot-emerald"></span>
-                <span class="chip-name">MOTORS</span>
-                <span class="chip-status">ARMED</span>
-              </div>
-              <div class="sensor-chip" id="sensor-can">
-                <span class="chip-dot dot-emerald"></span>
-                <span class="chip-name">CAN BUS</span>
-                <span class="chip-status">ACTIVE</span>
-              </div>
+        <!-- System Diagnostics Alerts -->
+        <section class="card full-width">
+          <div class="card-header">
+            <span class="card-icon">🩺</span>
+            <h2>Diagnostics &amp; Guardrail Audits</h2>
+          </div>
+          <div class="diagnostics-box" id="diagnostics-alerts-list">
+            <div class="diag-item ok">
+              <span>✅</span>
+              <span>LiDAR Sensor: Operational (360° pointcloud verified)</span>
+            </div>
+            <div class="diag-item ok">
+              <span>✅</span>
+              <span>IMU Accelerometer: Operational (gravity vector 9.81 m/s²)</span>
+            </div>
+            <div class="diag-item ok">
+              <span>✅</span>
+              <span>Command Sandbox: SAFE_WRITE mode active (unauthorized writes blocked)</span>
             </div>
           </div>
+        </section>
 
-          <!-- Diagnostics Alerts Drawer -->
-          <div class="alerts-container">
-            <h3 class="widget-subtitle">ACTIVE ADVISORIES</h3>
-            <div id="diagnostics-alerts-list" class="alerts-list">
-              <div class="alert-item alert-info">
-                <span class="alert-badge">INFO</span>
-                <span class="alert-msg">System initialized in simulation fallback.</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- COLUMN 2: Node & Topic Explorer + Live PID Tuner -->
-      <section class="card panel-topology">
-        <div class="card-header">
-          <div class="card-title">
-            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 17l6-6-6-6M12 19h8"/>
-            </svg>
-            <h2>TOPOLOGY & CONTROLS</h2>
-          </div>
-          <span id="node-count-badge" class="tag tag-cyan">6 NODES ONLINE</span>
-        </div>
-
-        <div class="card-body">
-          <!-- Active Nodes Tree -->
-          <div class="topology-subpanel">
-            <h3 class="widget-subtitle">ACTIVE NODES</h3>
-            <div id="nodes-list" class="nodes-chip-list">
-              <!-- Populated dynamically via JS -->
-              <span class="node-chip">/controller_manager</span>
-              <span class="node-chip">/nav2_controller</span>
-              <span class="node-chip">/nav2_planner</span>
-              <span class="node-chip">/slam_toolbox</span>
-              <span class="node-chip">/robot_state_publisher</span>
-              <span class="node-chip">/sensor_fusion_node</span>
-            </div>
-          </div>
-
-          <!-- Topics Explorer -->
-          <div class="topology-subpanel topics-subpanel">
-            <div class="subpanel-header">
-              <h3 class="widget-subtitle">TOPICS EXPLORER</h3>
-              <input type="text" id="topic-search-input" class="search-input" placeholder="Filter topics (/scan, /cmd_vel)...">
-            </div>
-            <div class="topics-table-wrapper">
-              <table class="topics-table">
-                <thead>
-                  <tr>
-                    <th>TOPIC</th>
-                    <th>TYPE</th>
-                    <th>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody id="topics-tbody">
-                  <!-- Populated dynamically via JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Live PID Tuner Section -->
-          <div class="topology-subpanel pid-tuner-subpanel">
-            <div class="subpanel-header">
-              <h3 class="widget-subtitle">PID CONTROLLER TUNER</h3>
-              <select id="pid-node-select" class="select-input">
-                <option value="nav2_controller">nav2_controller</option>
-                <option value="controller_manager">controller_manager</option>
-              </select>
-            </div>
-
-            <!-- Proportional Gain (Kp) -->
-            <div class="pid-control-row">
-              <div class="pid-label-group">
-                <span class="pid-name">Kp (Proportional)</span>
-                <span class="pid-bound-hint">[0.0 - 500.0]</span>
-              </div>
-              <div class="pid-inputs">
-                <input type="range" id="slider-kp" min="0" max="100" step="0.5" value="2.5" class="pid-slider">
-                <input type="number" id="num-kp" min="0" max="500" step="0.1" value="2.5" class="pid-num-input">
-              </div>
-            </div>
-
-            <!-- Integral Gain (Ki) -->
-            <div class="pid-control-row">
-              <div class="pid-label-group">
-                <span class="pid-name">Ki (Integral)</span>
-                <span class="pid-bound-hint">[0.0 - 100.0]</span>
-              </div>
-              <div class="pid-inputs">
-                <input type="range" id="slider-ki" min="0" max="20" step="0.05" value="0.1" class="pid-slider">
-                <input type="number" id="num-ki" min="0" max="100" step="0.01" value="0.10" class="pid-num-input">
-              </div>
-            </div>
-
-            <!-- Derivative Gain (Kd) -->
-            <div class="pid-control-row">
-              <div class="pid-label-group">
-                <span class="pid-name">Kd (Derivative)</span>
-                <span class="pid-bound-hint">[0.0 - 100.0]</span>
-              </div>
-              <div class="pid-inputs">
-                <input type="range" id="slider-kd" min="0" max="20" step="0.05" value="0.05" class="pid-slider">
-                <input type="number" id="num-kd" min="0" max="100" step="0.01" value="0.05" class="pid-num-input">
-              </div>
-            </div>
-
-            <div class="pid-actions">
-              <button id="btn-apply-pid" class="btn-secondary">Apply Gains</button>
-              <span id="pid-status-msg" class="pid-status-msg"></span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- COLUMN 3: 2D Canvas LiDAR Radar & Spatial Visualizer -->
-      <section class="card panel-radar">
-        <div class="card-header">
-          <div class="card-title">
-            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="2" x2="12" y2="12"/>
-              <line x1="12" y1="12" x2="19" y2="19"/>
-            </svg>
-            <h2>360° LIDAR RADAR</h2>
-          </div>
-          <div class="radar-toggles">
-            <button id="btn-toggle-radar-mode" class="btn-mode-toggle" title="Toggle Canvas / ASCII Radar Mode">
-              CANVAS 2D
-            </button>
-          </div>
-        </div>
-
-        <div class="card-body radar-card-body">
-          <!-- Canvas Container -->
-          <div id="radar-canvas-container" class="radar-viewport">
-            <canvas id="lidar-canvas" width="480" height="480"></canvas>
-            <!-- Hover Floating Tooltip -->
-            <div id="radar-hover-pill" class="radar-hover-pill hidden">
-              R: <span id="radar-hover-dist">--</span>m | θ: <span id="radar-hover-angle">--</span>°
-            </div>
-            <!-- Range Legend Tags -->
-            <div class="radar-legend">
-              <span class="legend-chip legend-critical">&lt;0.35m DANGER</span>
-              <span class="legend-chip legend-warning">&lt;0.75m CAUTION</span>
-              <span class="legend-chip legend-safe">&gt;0.75m CLEAR</span>
-            </div>
-          </div>
-
-          <!-- ASCII Spatial Radar Display (Hidden by default) -->
-          <div id="spatial-ascii-container" class="spatial-ascii-view hidden">
-            <div class="ascii-toolbar">
-              <span class="ascii-legend-item"><strong class="text-cyan">R</strong>: Robot</span>
-              <span class="ascii-legend-item"><strong class="text-crimson">*</strong>: Obstacle</span>
-              <span class="ascii-legend-item"><strong class="text-dim">.</strong>: Space</span>
-            </div>
-            <pre id="spatial-ascii-pre" class="ascii-pre">Loading spatial grid...</pre>
-          </div>
-
-          <!-- Telemetry Velocity & Proximity Stats -->
-          <div class="radar-stats-bar">
-            <div class="stat-cell">
-              <span class="stat-label">CLOSEST OBSTACLE</span>
-              <span id="closest-obstacle-dist" class="stat-value text-emerald">2.14 m</span>
-            </div>
-            <div class="stat-cell">
-              <span class="stat-label">BEARING</span>
-              <span id="closest-obstacle-bearing" class="stat-value">42.5°</span>
-            </div>
-            <div class="stat-cell">
-              <span class="stat-label">LINEAR VEL</span>
-              <span id="telemetry-lin-vel" class="stat-value">0.00 m/s</span>
-            </div>
-            <div class="stat-cell">
-              <span class="stat-label">ANGULAR VEL</span>
-              <span id="telemetry-ang-vel" class="stat-value">0.00 rad/s</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-    </main>
-
-    <!-- Bottom Drawer: MCP Tool Call Log & Telemetry Event Stream -->
-    <footer class="bottom-drawer">
-      <div class="drawer-header">
-        <div class="drawer-title">
-          <span class="drawer-indicator"></span>
-          <span>REAL-TIME AUDIT LOG & TELEMETRY STREAM</span>
-        </div>
-        <div class="drawer-controls">
-          <button id="btn-filter-all" class="btn-drawer-filter active">ALL</button>
-          <button id="btn-filter-tools" class="btn-drawer-filter">TOOLS</button>
-          <button id="btn-filter-sandbox" class="btn-drawer-filter">SANDBOX</button>
-          <button id="btn-filter-errors" class="btn-drawer-filter">ERRORS</button>
-          <button id="btn-clear-log" class="btn-drawer-action">Clear</button>
-        </div>
-      </div>
-      <div id="audit-log-stream" class="drawer-content">
-        <div class="log-entry log-info">
-          <span class="log-ts">[00:00:00.000]</span>
-          <span class="log-tag tag-sys">SYSTEM</span>
-          <span class="log-text">Antigravity Robotics Dashboard frontend initialized. Waiting for connection.</span>
-        </div>
-      </div>
-    </footer>
-
-    <!-- Topic Payload Modal Sniffer -->
-    <div id="modal-sniffer" class="modal-backdrop hidden">
-      <div class="modal-card">
-        <div class="modal-header">
-          <h3 id="modal-sniffer-title">Topic Payload: /scan</h3>
-          <button id="btn-modal-close" class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-          <pre id="modal-sniffer-json" class="json-viewer"></pre>
-        </div>
       </div>
     </div>
 
+    <!-- TAB 3: Engineer Mode (Topics & Nodes) -->
+    <div id="tab-engineer" class="tab-content">
+      <div class="engineer-grid">
+
+        <!-- Nodes List -->
+        <section class="card">
+          <div class="card-header">
+            <span class="card-icon">🌐</span>
+            <h2>Active ROS 2 Nodes</h2>
+            <span class="count-badge" id="node-count-badge">6 Nodes</span>
+          </div>
+          <ul class="nodes-list" id="nodes-list">
+            <li class="node-item">/teleop_keyboard</li>
+            <li class="node-item">/lidar_node</li>
+            <li class="node-item">/imu_node</li>
+            <li class="node-item">/battery_monitor</li>
+            <li class="node-item">/motion_controller</li>
+            <li class="node-item">/safety_guardian</li>
+          </ul>
+        </section>
+
+        <!-- Topics Table -->
+        <section class="card">
+          <div class="card-header">
+            <span class="card-icon">📬</span>
+            <h2>ROS 2 Topics</h2>
+            <input type="text" id="topic-search-input" class="search-input" placeholder="Filter topics...">
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Topic Name</th>
+                  <th>Message Type</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="topics-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- PID Loop Tuner -->
+        <section class="card full-width">
+          <div class="card-header">
+            <span class="card-icon">⚙️</span>
+            <h2>PID Velocity Controller Tuner</h2>
+          </div>
+          <div class="pid-tuner-layout">
+            <div class="pid-group">
+              <label>Proportional Gain (Kp): <span id="num-kp">1.50</span></label>
+              <input type="range" id="slider-kp" min="0" max="10" step="0.05" value="1.5">
+            </div>
+            <div class="pid-group">
+              <label>Integral Gain (Ki): <span id="num-ki">0.05</span></label>
+              <input type="range" id="slider-ki" min="0" max="2" step="0.01" value="0.05">
+            </div>
+            <div class="pid-group">
+              <label>Derivative Gain (Kd): <span id="num-kd">0.12</span></label>
+              <input type="range" id="slider-kd" min="0" max="2" step="0.01" value="0.12">
+            </div>
+            <button id="btn-apply-pid" class="btn btn-primary">Apply PID Gains</button>
+          </div>
+          <div id="pid-status-msg" class="pid-status"></div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- TAB 4: Activity Log -->
+    <div id="tab-logs" class="tab-content">
+      <section class="card full-width">
+        <div class="card-header">
+          <span class="card-icon">📜</span>
+          <h2>Activity &amp; Command Stream</h2>
+          <button id="btn-clear-log" class="btn btn-secondary btn-sm">Clear Log</button>
+        </div>
+        <div class="log-stream" id="audit-log-stream">
+          <!-- Live events inserted here -->
+        </div>
+      </section>
+    </div>
+
+  </div>
+
+  <!-- Sniffer Modal (Topic Inspector) -->
+  <div id="modal-sniffer" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-sniffer-title">Topic Inspector</h3>
+        <button id="btn-modal-close" class="btn-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <pre id="modal-sniffer-json"><code>Loading...</code></pre>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>

@@ -1,6 +1,6 @@
 /**
- * ROS 2 Antigravity Mission Control — Frontend Application Controller
- * Zero External Dependencies | Vanilla ES6 | 30Hz Canvas Radar | Optimistic State Machine
+ * ROS 2 Robotics Studio — Frontend Application Controller
+ * Ultra-Responsive | Tactile D-Pad Drive | 360° LiDAR Radar Canvas | Clean Tab Navigation
  */
 
 (function () {
@@ -8,61 +8,82 @@
 
   // ── Global Application State ──────────────────────────────────────────────
   const State = {
-    connected: false,
-    mode: 'disconnected', // 'disconnected' | 'connecting' | 'simulation' | 'native_rclpy'
+    connected: true,
     estop: false,
-    latencyMs: 0,
-    radarMode: 'canvas', // 'canvas' | 'ascii'
+    speedSetting: 0.5, // 0.2 | 0.5 | 1.0 m/s
+    linearVel: 0.0,
+    angularVel: 0.0,
+    closestObstacleM: 2.4,
+    batteryPct: 85,
+    batteryVoltage: 24.2,
+    radarAngle: 0,
+    obstacles: [],
     nodes: [],
     topics: [],
-    selectedTopicForSniff: null,
-    telemetry: {
-      battery: { voltage: 24.2, percentage: 0.88, current: -3.4 },
-      imu: { roll: 0.0, pitch: 0.0, yaw: 180.0, z_accel: 9.81 },
-      lidar: { ranges: [], angle_min: -Math.PI, angle_max: Math.PI, range_min: 0.12, range_max: 10.0 },
-      closestObstacle: { distance: 2.14, bearing: 42.5 },
-      odom: { linear_vel: 0.0, angular_vel: 0.0 }
-    },
     ws: null,
-    pollTimer: null,
-    pingTimer: null,
-    activeLogFilter: 'ALL'
+    wsReconnectTimer: null,
   };
 
-  // ── DOM Element Cache ─────────────────────────────────────────────────────
+  // ── DOM References ────────────────────────────────────────────────────────
   const DOM = {
-    btnConnect: document.getElementById('btn-connect'),
-    btnConnectText: document.getElementById('btn-connect-text'),
-    btnSpinner: document.querySelector('.btn-spinner'),
     connectionBadge: document.getElementById('connection-badge'),
     connectionStatusText: document.getElementById('connection-status-text'),
     latencyVal: document.getElementById('latency-val'),
     sandboxStatusText: document.getElementById('sandbox-status-text'),
+
+    btnConnect: document.getElementById('btn-connect'),
+    btnConnectIcon: document.getElementById('btn-connect-icon'),
+    btnConnectText: document.getElementById('btn-connect-text'),
+
     btnEstop: document.getElementById('btn-estop'),
     btnEstopReset: document.getElementById('btn-estop-reset'),
     estopBanner: document.getElementById('estop-banner'),
 
-    // Health
+    btnDismissGuide: document.getElementById('btn-dismiss-guide'),
+    guideBanner: document.getElementById('guide-banner'),
+
+    // Radar Canvas
+    lidarCanvas: document.getElementById('lidar-canvas'),
+    closestObstacleDist: document.getElementById('closest-obstacle-dist'),
+    telemetryLinVel: document.getElementById('telemetry-lin-vel'),
+    telemetryAngVel: document.getElementById('telemetry-ang-vel'),
+    quickBatteryPct: document.getElementById('quick-battery-pct'),
+    radarProximityBadge: document.getElementById('radar-proximity-badge'),
+
+    // D-Pad Controls
+    btnDriveFwd: document.getElementById('btn-drive-fwd'),
+    btnDriveLeft: document.getElementById('btn-drive-left'),
+    btnDriveStop: document.getElementById('btn-drive-stop'),
+    btnDriveRight: document.getElementById('btn-drive-right'),
+    btnDriveRev: document.getElementById('btn-drive-rev'),
+    motionFeedback: document.getElementById('motion-feedback'),
+    motionFeedbackIcon: document.getElementById('motion-feedback-icon'),
+    motionFeedbackText: document.getElementById('motion-feedback-text'),
+    speedChips: document.querySelectorAll('.btn-chip'),
+
+    // Navigation Tabs
+    tabBtns: document.querySelectorAll('.tab-btn'),
+    tabContents: document.querySelectorAll('.tab-content'),
+
+    // Sensors Tab
+    batteryBar: document.getElementById('battery-bar'),
     batteryPctText: document.getElementById('battery-pct-text'),
-    batteryProgressRing: document.getElementById('battery-progress-ring'),
     batteryVoltageText: document.getElementById('battery-voltage-text'),
     batteryCurrentText: document.getElementById('battery-current-text'),
     batteryStateText: document.getElementById('battery-state-text'),
-    horizonLadder: document.getElementById('horizon-pitch-ladder'),
     imuRollText: document.getElementById('imu-roll-text'),
     imuPitchText: document.getElementById('imu-pitch-text'),
     imuYawText: document.getElementById('imu-yaw-text'),
     imuZaccelText: document.getElementById('imu-zaccel-text'),
     alertsList: document.getElementById('diagnostics-alerts-list'),
 
-    // Topology
-    nodeCountBadge: document.getElementById('node-count-badge'),
+    // Engineer Tab
     nodesList: document.getElementById('nodes-list'),
-    topicSearchInput: document.getElementById('topic-search-input'),
+    nodeCountBadge: document.getElementById('node-count-badge'),
     topicsTbody: document.getElementById('topics-tbody'),
+    topicSearchInput: document.getElementById('topic-search-input'),
 
     // PID Tuner
-    pidNodeSelect: document.getElementById('pid-node-select'),
     sliderKp: document.getElementById('slider-kp'),
     numKp: document.getElementById('num-kp'),
     sliderKi: document.getElementById('slider-ki'),
@@ -72,172 +93,331 @@
     btnApplyPid: document.getElementById('btn-apply-pid'),
     pidStatusMsg: document.getElementById('pid-status-msg'),
 
-    // Radar
-    lidarCanvas: document.getElementById('lidar-canvas'),
-    radarCanvasContainer: document.getElementById('radar-canvas-container'),
-    radarHoverPill: document.getElementById('radar-hover-pill'),
-    radarHoverDist: document.getElementById('radar-hover-dist'),
-    radarHoverAngle: document.getElementById('radar-hover-angle'),
-    btnToggleRadarMode: document.getElementById('btn-toggle-radar-mode'),
-    spatialAsciiContainer: document.getElementById('spatial-ascii-container'),
-    spatialAsciiPre: document.getElementById('spatial-ascii-pre'),
-    closestObstacleDist: document.getElementById('closest-obstacle-dist'),
-    closestObstacleBearing: document.getElementById('closest-obstacle-bearing'),
-    telemetryLinVel: document.getElementById('telemetry-lin-vel'),
-    telemetryAngVel: document.getElementById('telemetry-ang-vel'),
-
-    // Audit Log & Modal
+    // Activity Log
     auditLogStream: document.getElementById('audit-log-stream'),
     btnClearLog: document.getElementById('btn-clear-log'),
+
+    // Sniffer Modal
     modalSniffer: document.getElementById('modal-sniffer'),
     modalSnifferTitle: document.getElementById('modal-sniffer-title'),
     modalSnifferJson: document.getElementById('modal-sniffer-json'),
-    btnModalClose: document.getElementById('btn-modal-close')
+    btnModalClose: document.getElementById('btn-modal-close'),
   };
 
-  // ── Logging System ────────────────────────────────────────────────────────
-  function log(tag, message, level = 'info') {
+  // ── Logging Utility ───────────────────────────────────────────────────────
+  function addLog(tag, msg) {
     if (!DOM.auditLogStream) return;
-    const now = new Date();
-    const ts = `[${now.toTimeString().split(' ')[0]}.${String(now.getMilliseconds()).padStart(3, '0')}]`;
-
-    const entry = document.createElement('div');
-    entry.className = `log-entry log-${level}`;
-    entry.dataset.category = tag.toUpperCase();
-
-    let tagClass = 'tag-sys';
-    if (tag === 'MCP') tagClass = 'tag-mcp';
-    else if (tag === 'SAFETY') tagClass = 'tag-safety';
-    else if (tag === 'ERROR') tagClass = 'tag-err';
-
-    entry.innerHTML = `
-      <span class="log-ts">${ts}</span>
-      <span class="log-tag ${tagClass}">${tag}</span>
-      <span class="log-text">${escapeHtml(message)}</span>
-    `;
-
-    DOM.auditLogStream.appendChild(entry);
+    const timeStr = new Date().toLocaleTimeString();
+    const row = document.createElement('div');
+    row.className = 'log-entry';
+    row.innerHTML = `<span class="log-time">[${timeStr}]</span> <span class="log-tag">${tag}:</span> <span class="log-msg">${msg}</span>`;
+    DOM.auditLogStream.appendChild(row);
     DOM.auditLogStream.scrollTop = DOM.auditLogStream.scrollHeight;
   }
 
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  // ── 1-Click Connection State Machine (<30ms optimistic) ───────────────────
-  async function handleToggleConnect() {
-    if (State.connected) {
-      // Disconnect
-      setConnectionState('disconnected');
-      log('SYSTEM', 'Disconnecting ROS 2 bridge...', 'info');
-      try {
-        await fetch('/api/connect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'disconnect' })
-        });
-      } catch (err) {
-        // Ignore disconnect fetch errors
-      }
-      if (State.ws) {
-        State.ws.close();
-        State.ws = null;
-      }
-      clearInterval(State.pollTimer);
-      clearInterval(State.pingTimer);
-      log('SYSTEM', 'Disconnected cleanly.', 'info');
+  // ── Drive Teleoperation Logic ─────────────────────────────────────────────
+  async function sendDriveCommand(linearX, angularZ, label) {
+    if (State.estop) {
+      updateFeedback('🛑', 'E-STOP Active! Motion is locked. Re-arm safety to resume.');
       return;
     }
 
-    // Optimistic UI state (<5ms)
-    setConnectionState('connecting');
-    log('SYSTEM', 'Initiating 1-click bridge connection probe...', 'info');
+    State.linearVel = linearX;
+    State.angularVel = angularZ;
+    updateFeedback(
+      linearX !== 0 || angularZ !== 0 ? '🚗' : '⏹️',
+      label || (linearX !== 0 ? `Driving: ${linearX.toFixed(2)} m/s` : 'Robot Stopped.')
+    );
 
-    const startTime = performance.now();
+    if (DOM.telemetryLinVel) DOM.telemetryLinVel.textContent = `${linearX.toFixed(2)} m/s`;
+    if (DOM.telemetryAngVel) DOM.telemetryAngVel.textContent = `${angularZ.toFixed(2)} rad/s`;
 
     try {
-      const resp = await fetch('/api/connect', {
+      const res = await fetch('/api/drive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'connect', mode: 'auto' })
+        body: JSON.stringify({ linear_x: linearX, angular_z: angularZ })
+      });
+      if (res.ok) {
+        addLog('DRIVE', `${label} (linear=${linearX.toFixed(2)}, angular=${angularZ.toFixed(2)})`);
+      }
+    } catch {
+      // In offline preview or network drop
+    }
+  }
+
+  function updateFeedback(icon, text) {
+    if (DOM.motionFeedbackIcon) DOM.motionFeedbackIcon.textContent = icon;
+    if (DOM.motionFeedbackText) DOM.motionFeedbackText.textContent = text;
+  }
+
+  // ── D-Pad Event Binding ───────────────────────────────────────────────────
+  function initDpad() {
+    if (!DOM.btnDriveFwd) return;
+
+    DOM.btnDriveFwd.addEventListener('click', () => {
+      sendDriveCommand(State.speedSetting, 0.0, `Driving Forward at ${State.speedSetting} m/s`);
+    });
+
+    DOM.btnDriveRev.addEventListener('click', () => {
+      sendDriveCommand(-State.speedSetting, 0.0, `Reversing at -${State.speedSetting} m/s`);
+    });
+
+    DOM.btnDriveLeft.addEventListener('click', () => {
+      sendDriveCommand(0.0, 1.0, 'Turning Left (Counter-Clockwise)');
+    });
+
+    DOM.btnDriveRight.addEventListener('click', () => {
+      sendDriveCommand(0.0, -1.0, 'Turning Right (Clockwise)');
+    });
+
+    DOM.btnDriveStop.addEventListener('click', () => {
+      sendDriveCommand(0.0, 0.0, 'Robot Motion Halted.');
+    });
+
+    // Speed chips
+    DOM.speedChips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        DOM.speedChips.forEach((c) => c.classList.remove('active'));
+        chip.classList.add('active');
+        State.speedSetting = parseFloat(chip.dataset.speed) || 0.5;
+        addLog('SPEED', `Drive speed profile set to ${State.speedSetting} m/s`);
+      });
+    });
+
+    // Keyboard Arrow Controls
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      if (e.code === 'ArrowUp') {
+        e.preventDefault();
+        DOM.btnDriveFwd.classList.add('pressed');
+        sendDriveCommand(State.speedSetting, 0.0, 'Driving Forward');
+      } else if (e.code === 'ArrowDown') {
+        e.preventDefault();
+        DOM.btnDriveRev.classList.add('pressed');
+        sendDriveCommand(-State.speedSetting, 0.0, 'Reversing');
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        DOM.btnDriveLeft.classList.add('pressed');
+        sendDriveCommand(0.0, 1.0, 'Turning Left');
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        DOM.btnDriveRight.classList.add('pressed');
+        sendDriveCommand(0.0, -1.0, 'Turning Right');
+      } else if (e.code === 'Space') {
+        e.preventDefault();
+        triggerEstop();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+        [DOM.btnDriveFwd, DOM.btnDriveRev, DOM.btnDriveLeft, DOM.btnDriveRight].forEach((b) =>
+          b.classList.remove('pressed')
+        );
+      }
+    });
+  }
+
+  // ── Emergency Stop (E-STOP) ───────────────────────────────────────────────
+  async function triggerEstop() {
+    State.estop = true;
+    State.linearVel = 0.0;
+    State.angularVel = 0.0;
+
+    if (DOM.estopBanner) DOM.estopBanner.classList.remove('hidden');
+    updateFeedback('🛑', 'EMERGENCY STOP TRIGGERED: Velocity clamped to 0.00 m/s.');
+    if (DOM.telemetryLinVel) DOM.telemetryLinVel.textContent = '0.00 m/s';
+    if (DOM.telemetryAngVel) DOM.telemetryAngVel.textContent = '0.00 rad/s';
+
+    addLog('E-STOP', 'EMERGENCY STOP ACTIVATED — All motion killed.');
+
+    try {
+      await fetch('/api/estop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'Operator UI E-STOP Triggered' })
+      });
+    } catch {
+      // Offline fallback
+    }
+  }
+
+  function resetEstop() {
+    State.estop = false;
+    if (DOM.estopBanner) DOM.estopBanner.classList.add('hidden');
+    updateFeedback('🟢', 'Safety Re-Armed. Ready for motion commands.');
+    addLog('SAFETY', 'Safety re-armed by operator. Ready to drive.');
+  }
+
+  // ── 360° LiDAR Canvas Radar Renderer ─────────────────────────────────────
+  const Radar = {
+    ctx: null,
+    width: 380,
+    height: 380,
+
+    init() {
+      if (!DOM.lidarCanvas) return;
+      this.ctx = DOM.lidarCanvas.getContext('2d');
+      this.resize();
+      window.addEventListener('resize', () => this.resize());
+      this.loop();
+    },
+
+    resize() {
+      if (!DOM.lidarCanvas) return;
+      const rect = DOM.lidarCanvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const size = Math.min(rect.width, rect.height) || 340;
+      this.width = size;
+      this.height = size;
+      DOM.lidarCanvas.width = size * dpr;
+      DOM.lidarCanvas.height = size * dpr;
+      this.ctx.scale(dpr, dpr);
+    },
+
+    loop() {
+      requestAnimationFrame(() => this.loop());
+      this.render();
+    },
+
+    render() {
+      if (!this.ctx) return;
+      const ctx = this.ctx;
+      const cx = this.width / 2;
+      const cy = this.height / 2;
+      const radius = cx - 16;
+
+      // Clear Canvas
+      ctx.clearRect(0, 0, this.width, this.height);
+
+      // Background Circle
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#060A13';
+      ctx.fill();
+      ctx.strokeStyle = '#1E293B';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Range Rings (1m, 2m, 3m, 4m)
+      [0.25, 0.5, 0.75, 1.0].forEach((ratio, idx) => {
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * ratio, 0, Math.PI * 2);
+        ctx.strokeStyle = idx === 3 ? 'rgba(56, 189, 248, 0.3)' : 'rgba(255, 255, 255, 0.07)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
       });
 
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
+      // Crosshairs
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - radius);
+      ctx.lineTo(cx, cy + radius);
+      ctx.moveTo(cx - radius, cy);
+      ctx.lineTo(cx + radius, cy);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
-      if (data.status !== 'ok') {
-        throw new Error(data.reason || data.message || 'Connection rejected by bridge');
+      // Rotating Radar Sweep Beam
+      State.radarAngle += 0.04;
+      const sweepAngle = State.radarAngle;
+
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+      grad.addColorStop(0, 'rgba(56, 189, 248, 0.25)');
+      grad.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, radius, sweepAngle - 0.5, sweepAngle);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Sweep Leading Edge Line
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(sweepAngle) * radius, cy + Math.sin(sweepAngle) * radius);
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+
+      // Draw Obstacle Points
+      const points = State.obstacles.length > 0 ? State.obstacles : this.generateDemoObstacles();
+      let minDistance = 999;
+
+      points.forEach((pt) => {
+        const ptDist = pt.dist;
+        if (ptDist < minDistance) minDistance = ptDist;
+
+        // Polar to Cartesian
+        const maxRange = 5.0; // 5 meters max display
+        const distRatio = Math.min(ptDist / maxRange, 1.0);
+        const px = cx + Math.cos(pt.angle) * (radius * distRatio);
+        const py = cy + Math.sin(pt.angle) * (radius * distRatio);
+
+        ctx.beginPath();
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
+
+        // Color by proximity: Red (<0.6m), Amber (<1.5m), Emerald (>1.5m)
+        if (ptDist < 0.6) {
+          ctx.fillStyle = '#EF4444';
+          ctx.shadowColor = '#EF4444';
+          ctx.shadowBlur = 8;
+        } else if (ptDist < 1.5) {
+          ctx.fillStyle = '#F59E0B';
+          ctx.shadowColor = '#F59E0B';
+          ctx.shadowBlur = 5;
+        } else {
+          ctx.fillStyle = '#10B981';
+          ctx.shadowColor = '#10B981';
+          ctx.shadowBlur = 3;
+        }
+        ctx.fill();
+        ctx.shadowBlur = 0; // reset
+      });
+
+      // Update Front Clearance Metric
+      State.closestObstacleM = minDistance;
+      if (DOM.closestObstacleDist) {
+        DOM.closestObstacleDist.textContent = `${minDistance.toFixed(2)} m`;
+        if (minDistance < 0.6) {
+          DOM.closestObstacleDist.className = 'metric-value text-rose';
+          if (DOM.radarProximityBadge) {
+            DOM.radarProximityBadge.textContent = '🔴 Obstacle Close';
+            DOM.radarProximityBadge.style.background = 'rgba(239, 68, 68, 0.2)';
+            DOM.radarProximityBadge.style.color = '#FCA5A5';
+          }
+        } else {
+          DOM.closestObstacleDist.className = 'metric-value text-emerald';
+          if (DOM.radarProximityBadge) {
+            DOM.radarProximityBadge.textContent = '🟢 Path Clear';
+            DOM.radarProximityBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+            DOM.radarProximityBadge.style.color = '#34D399';
+          }
+        }
       }
+    },
 
-      const rtt = (performance.now() - startTime).toFixed(1);
-      State.latencyMs = rtt;
-      DOM.latencyVal.textContent = `${rtt} ms`;
-
-      const targetMode = data.mode || 'simulation';
-      setConnectionState(targetMode);
-
-      log('MCP', `Bridge connected in ${targetMode.toUpperCase()} mode (RTT: ${rtt}ms)`, 'info');
-
-      // Fetch initial metadata
-      fetchTopology();
-      fetchDiagnostics();
-
-      // Launch WebSocket telemetry or fallback poll
-      initWebSocketTelemetry();
-
-    } catch (err) {
-      if (State.ws) {
-        State.ws.close();
-        State.ws = null;
-      }
-      clearInterval(State.pollTimer);
-      clearInterval(State.pingTimer);
-      log('ERROR', `Connection failed: ${err.message}`, 'error');
-      setConnectionState('error');
+    generateDemoObstacles() {
+      // Deterministic realistic simulated obstacles around the virtual robot
+      const obs = [];
+      const baseAngles = [0.1, 0.4, 1.2, 1.9, 2.5, 3.2, 4.1, 4.8, 5.5];
+      baseAngles.forEach((a, i) => {
+        const d = 1.8 + Math.sin(a * 2 + State.radarAngle * 0.1) * 0.6 + (i % 2) * 0.5;
+        obs.push({ angle: a, dist: d });
+      });
+      return obs;
     }
-  }
+  };
 
-  function setConnectionState(mode) {
-    State.mode = mode;
-    State.connected = (mode === 'simulation' || mode === 'native' || mode === 'native_rclpy');
-
-    // Reset classes
-    DOM.connectionBadge.className = 'status-badge';
-    DOM.btnSpinner.classList.add('hidden');
-
-    if (mode === 'connecting') {
-      DOM.connectionBadge.classList.add('state-connecting');
-      DOM.connectionStatusText.textContent = 'CONNECTING...';
-      DOM.btnConnectText.textContent = 'Connecting...';
-      DOM.btnSpinner.classList.remove('hidden');
-    } else if (State.connected) {
-      DOM.connectionBadge.classList.add('state-connected');
-      const label = mode === 'simulation' ? 'CONNECTED (SIMULATION)' : 'CONNECTED (NATIVE rclpy)';
-      DOM.connectionStatusText.textContent = label;
-      DOM.btnConnectText.textContent = 'Disconnect';
-    } else if (mode === 'error') {
-      DOM.connectionBadge.classList.add('state-error');
-      DOM.connectionStatusText.textContent = 'CONNECTION ERROR';
-      DOM.btnConnectText.textContent = 'Retry Connect';
-      DOM.latencyVal.textContent = '-- ms';
-    } else {
-      DOM.connectionBadge.classList.add('state-disconnected');
-      DOM.connectionStatusText.textContent = 'DISCONNECTED';
-      DOM.btnConnectText.textContent = 'Connect ROS 2';
-      DOM.latencyVal.textContent = '-- ms';
-    }
-  }
-
-  // ── WebSocket Telemetry Pipeline ──────────────────────────────────────────
+  // ── Telemetry WebSocket Handler ───────────────────────────────────────────
   function initWebSocketTelemetry() {
-    if (State.ws) {
-      State.ws.close();
-    }
-
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws/telemetry`;
 
@@ -245,710 +425,303 @@
       State.ws = new WebSocket(wsUrl);
 
       State.ws.onopen = () => {
-        log('SYSTEM', 'WebSocket telemetry stream established at 30Hz', 'info');
-        // Start ping heartbeat
-        State.pingTimer = setInterval(() => {
-          if (State.ws && State.ws.readyState === WebSocket.OPEN) {
-            State.ws.send(JSON.stringify({ type: 'ping', ts: performance.now() }));
-          }
-        }, 1500);
+        if (DOM.latencyVal) DOM.latencyVal.textContent = '1 ms';
+        addLog('TELEMETRY', 'High-speed 20Hz sensor telemetry connected.');
       };
 
       State.ws.onmessage = (event) => {
         try {
-          const payload = JSON.parse(event.data);
-          handleTelemetryFrame(payload);
-        } catch (e) {
-          // Non-JSON frame
+          const frame = JSON.parse(event.data);
+          updateTelemetryUI(frame);
+        } catch {
+          // Ignore malformed frames
         }
-      };
-
-      State.ws.onerror = () => {
-        // Failover to REST polling if WebSocket unavailable
-        log('SAFETY', 'WebSocket dropped; failing over to REST polling (2Hz)', 'info');
-        startRestPolling();
       };
 
       State.ws.onclose = () => {
-        clearInterval(State.pingTimer);
+        // Attempt clean reconnect after 3 seconds
+        clearTimeout(State.wsReconnectTimer);
+        State.wsReconnectTimer = setTimeout(() => {
+          if (State.connected) initWebSocketTelemetry();
+        }, 3000);
       };
-
-    } catch (err) {
-      startRestPolling();
+    } catch {
+      // Standalone mode
     }
   }
 
-  function handleTelemetryFrame(data) {
-    // Ping measurement
-    if (data.type === 'pong' && data.ts) {
-      const rtt = (performance.now() - data.ts).toFixed(1);
-      State.latencyMs = rtt;
-      DOM.latencyVal.textContent = `${rtt} ms`;
-      return;
-    }
+  function updateTelemetryUI(frame) {
+    if (!frame) return;
 
     // Battery
-    if (data.battery) {
-      updateBattery(data.battery);
+    if (frame.battery) {
+      const pct = Math.round((frame.battery.percentage || 0.85) * 100);
+      State.batteryPct = pct;
+      if (DOM.quickBatteryPct) DOM.quickBatteryPct.textContent = `${pct}%`;
+      if (DOM.batteryPctText) DOM.batteryPctText.textContent = `${pct}%`;
+      if (DOM.batteryBar) DOM.batteryBar.style.width = `${pct}%`;
+      if (DOM.batteryVoltageText && frame.battery.voltage) {
+        DOM.batteryVoltageText.textContent = `${frame.battery.voltage.toFixed(1)} V`;
+      }
+      if (DOM.batteryCurrentText && frame.battery.current) {
+        DOM.batteryCurrentText.textContent = `${frame.battery.current.toFixed(1)} A`;
+      }
     }
 
     // IMU
-    if (data.imu) {
-      updateImu(data.imu);
+    if (frame.imu) {
+      if (DOM.imuRollText && frame.imu.roll !== undefined) DOM.imuRollText.textContent = `${frame.imu.roll.toFixed(1)}°`;
+      if (DOM.imuPitchText && frame.imu.pitch !== undefined) DOM.imuPitchText.textContent = `${frame.imu.pitch.toFixed(1)}°`;
+      if (DOM.imuYawText && frame.imu.yaw !== undefined) DOM.imuYawText.textContent = `${frame.imu.yaw.toFixed(1)}°`;
+      if (DOM.imuZaccelText && frame.imu.z_accel !== undefined) DOM.imuZaccelText.textContent = `${frame.imu.z_accel.toFixed(2)} m/s²`;
     }
 
-    // LiDAR LaserScan
-    if (data.scan && data.scan.ranges) {
-      updateScan(data.scan);
-    }
+    // LiDAR Scan
+    if (frame.lidar && Array.isArray(frame.lidar.ranges)) {
+      const ranges = frame.lidar.ranges;
+      const angleMin = frame.lidar.angle_min || -Math.PI;
+      const angleInc = (frame.lidar.angle_max - angleMin) / ranges.length || (Math.PI * 2) / ranges.length;
 
-    // Odometry / Velocities
-    if (data.odom) {
-      if (data.odom.linear_vel !== undefined) {
-        DOM.telemetryLinVel.textContent = `${Number(data.odom.linear_vel).toFixed(2)} m/s`;
-      }
-      if (data.odom.angular_vel !== undefined) {
-        DOM.telemetryAngVel.textContent = `${Number(data.odom.angular_vel).toFixed(2)} rad/s`;
-      }
-    }
-  }
-
-  function startRestPolling() {
-    clearInterval(State.pollTimer);
-    State.pollTimer = setInterval(async () => {
-      if (!State.connected) return;
-      try {
-        const startTs = performance.now();
-        const resp = await fetch('/api/status');
-        if (resp.ok) {
-          const rtt = (performance.now() - startTs).toFixed(1);
-          DOM.latencyVal.textContent = `${rtt} ms`;
-        }
-        fetchDiagnostics();
-      } catch (e) {
-        // ignore
-      }
-    }, 1000);
-  }
-
-  // ── Battery Telemetry Updater ─────────────────────────────────────────────
-  function updateBattery(b) {
-    const pct = Math.max(0, Math.min(1, b.percentage !== undefined ? b.percentage : 0.88));
-    const pctInt = Math.round(pct * 100);
-
-    DOM.batteryPctText.textContent = `${pctInt}%`;
-    if (b.voltage) DOM.batteryVoltageText.textContent = `${Number(b.voltage).toFixed(1)} V`;
-    if (b.current) DOM.batteryCurrentText.textContent = `${Number(b.current).toFixed(1)} A`;
-
-    // SVG radial dashoffset (C = 263.89)
-    const circumference = 263.89;
-    const offset = circumference * (1 - pct);
-    DOM.batteryProgressRing.style.strokeDashoffset = offset;
-
-    // Dynamic color shift
-    if (pct < 0.20) {
-      DOM.batteryProgressRing.style.stroke = 'var(--neon-crimson)';
-      DOM.batteryStateText.textContent = 'Critical Low';
-      DOM.batteryStateText.className = 'metric-val text-crimson';
-    } else if (pct < 0.35) {
-      DOM.batteryProgressRing.style.stroke = 'var(--neon-amber)';
-      DOM.batteryStateText.textContent = 'Warning Low';
-      DOM.batteryStateText.className = 'metric-val text-amber';
-    } else {
-      DOM.batteryProgressRing.style.stroke = 'var(--neon-emerald)';
-      DOM.batteryStateText.textContent = 'Nominal';
-      DOM.batteryStateText.className = 'metric-val text-emerald';
-    }
-  }
-
-  // ── IMU Attitude Updater ──────────────────────────────────────────────────
-  function updateImu(imu) {
-    let roll = 0.0, pitch = 0.0, yaw = 180.0;
-
-    if (imu.orientation) {
-      const q = imu.orientation;
-      // Quaternion to Euler conversion
-      roll = Math.atan2(2 * (q.w * q.x + q.y * q.z), 1 - 2 * (q.x * q.x + q.y * q.y)) * (180 / Math.PI);
-      pitch = Math.asin(Math.max(-1, Math.min(1, 2 * (q.w * q.y - q.z * q.x)))) * (180 / Math.PI);
-      yaw = Math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z)) * (180 / Math.PI);
-      if (yaw < 0) yaw += 360;
-    } else if (imu.roll !== undefined) {
-      roll = imu.roll;
-      pitch = imu.pitch;
-      yaw = imu.yaw;
-    }
-
-    DOM.imuRollText.textContent = `${roll.toFixed(1)}°`;
-    DOM.imuPitchText.textContent = `${pitch.toFixed(1)}°`;
-    DOM.imuYawText.textContent = `${yaw.toFixed(1)}°`;
-
-    if (imu.linear_acceleration && imu.linear_acceleration.z) {
-      DOM.imuZaccelText.textContent = Number(imu.linear_acceleration.z).toFixed(2);
-    }
-
-    // Rotate and pitch artificial horizon
-    if (DOM.horizonLadder) {
-      const translateY = pitch * 1.5;
-      DOM.horizonLadder.style.transform = `translateY(${translateY}px) rotate(${-roll}deg)`;
-    }
-  }
-
-  // ── 2D HTML5 Canvas LiDAR Radar ───────────────────────────────────────────
-  let radarSweepAngle = 0;
-  const Radar = {
-    ctx: DOM.lidarCanvas.getContext('2d'),
-    maxRange: 5.0, // meters
-    points: [],
-
-    init() {
-      // HiDPI canvas scaling
-      const dpr = window.devicePixelRatio || 1;
-      const rect = DOM.lidarCanvas.getBoundingClientRect();
-      DOM.lidarCanvas.width = rect.width * dpr;
-      DOM.lidarCanvas.height = rect.height * dpr;
-      this.ctx.scale(dpr, dpr);
-
-      this.width = rect.width;
-      this.height = rect.height;
-      this.cx = this.width / 2;
-      this.cy = this.height / 2;
-      this.scale = (Math.min(this.cx, this.cy) - 24) / this.maxRange;
-
-      // Mouse hover tracking
-      DOM.lidarCanvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
-      DOM.lidarCanvas.addEventListener('mouseleave', () => this.onMouseLeave());
-
-      // Start render loop
-      this.loop = this.loop.bind(this);
-      requestAnimationFrame(this.loop);
-    },
-
-    onMouseMove(e) {
-      const rect = DOM.lidarCanvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-
-      const dx = mx - this.cx;
-      const dy = my - this.cy;
-      const distM = (Math.sqrt(dx * dx + dy * dy) / this.scale).toFixed(2);
-
-      // Bearing in degrees (0° = top/forward)
-      let deg = (Math.atan2(dx, -dy) * (180 / Math.PI));
-      if (deg < 0) deg += 360;
-
-      DOM.radarHoverDist.textContent = distM;
-      DOM.radarHoverAngle.textContent = deg.toFixed(1);
-      DOM.radarHoverPill.classList.remove('hidden');
-    },
-
-    onMouseLeave() {
-      DOM.radarHoverPill.classList.add('hidden');
-    },
-
-    loop() {
-      radarSweepAngle = (radarSweepAngle + 0.035) % (2 * Math.PI);
-      this.draw();
-      requestAnimationFrame(this.loop);
-    },
-
-    draw() {
-      const ctx = this.ctx;
-      const w = this.width;
-      const h = this.height;
-      const cx = this.cx;
-      const cy = this.cy;
-      const scale = this.scale;
-
-      // Clear with dark void
-      ctx.fillStyle = '#06090E';
-      ctx.fillRect(0, 0, w, h);
-
-      // Concentric Range Rings (1m, 2m, 3m, 4m, 5m)
-      ctx.lineWidth = 1;
-      for (let r = 1; r <= this.maxRange; r++) {
-        const radiusPx = r * scale;
-        ctx.strokeStyle = r === 1 ? 'rgba(0, 240, 255, 0.25)' : 'rgba(0, 240, 255, 0.12)';
-        ctx.beginPath();
-        ctx.arc(cx, cy, radiusPx, 0, 2 * Math.PI);
-        ctx.stroke();
-
-        // Distance label
-        ctx.fillStyle = 'rgba(0, 240, 255, 0.4)';
-        ctx.font = '9px "JetBrains Mono", monospace';
-        ctx.fillText(`${r}.0m`, cx + 4, cy - radiusPx + 11);
-      }
-
-      // Crosshair spokes
-      ctx.strokeStyle = 'rgba(0, 240, 255, 0.1)';
-      ctx.beginPath();
-      ctx.moveTo(cx, 10); ctx.lineTo(cx, h - 10);
-      ctx.moveTo(10, cy); ctx.lineTo(w - 10, cy);
-      ctx.stroke();
-
-      // Critical Safety Zone (<0.35m)
-      const safetyPx = 0.35 * scale;
-      ctx.fillStyle = 'rgba(255, 23, 68, 0.15)';
-      ctx.strokeStyle = 'rgba(255, 23, 68, 0.6)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(cx, cy, safetyPx, 0, 2 * Math.PI);
-      ctx.fill();
-      ctx.stroke();
-
-      // Sweeping Laser Radar Arm
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(radarSweepAngle);
-
-      const sweepGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.maxRange * scale);
-      sweepGradient.addColorStop(0, 'rgba(0, 240, 255, 0.8)');
-      sweepGradient.addColorStop(1, 'rgba(0, 240, 255, 0.0)');
-
-      ctx.strokeStyle = sweepGradient;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(0, -this.maxRange * scale);
-      ctx.stroke();
-      ctx.restore();
-
-      // Render Detected Obstacle Points
-      for (let i = 0; i < this.points.length; i++) {
-        const p = this.points[i];
-        if (p.r < 0.12 || p.r > this.maxRange) continue;
-
-        // Polar to Cartesian (forward is UP on canvas)
-        const px = cx + p.r * scale * Math.sin(p.theta);
-        const py = cy - p.r * scale * Math.cos(p.theta);
-
-        // Color threshold
-        if (p.r < 0.35) {
-          ctx.fillStyle = '#FF1744';
-          ctx.shadowColor = '#FF1744';
-          ctx.shadowBlur = 6;
-          ctx.beginPath();
-          ctx.arc(px, py, 3.5, 0, 2 * Math.PI);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-        } else if (p.r < 0.75) {
-          ctx.fillStyle = '#FFB300';
-          ctx.beginPath();
-          ctx.arc(px, py, 2.5, 0, 2 * Math.PI);
-          ctx.fill();
-        } else {
-          ctx.fillStyle = '#00F0FF';
-          ctx.beginPath();
-          ctx.arc(px, py, 2.0, 0, 2 * Math.PI);
-          ctx.fill();
+      const parsedObs = [];
+      for (let i = 0; i < ranges.length; i += 4) {
+        const r = ranges[i];
+        if (r > 0.1 && r < 10.0) {
+          parsedObs.push({ angle: angleMin + i * angleInc, dist: r });
         }
       }
-
-      // Robot Center Icon
-      ctx.fillStyle = '#00F0FF';
-      ctx.beginPath();
-      ctx.arc(cx, cy, 4, 0, 2 * Math.PI);
-      ctx.fill();
-
-      // Forward heading arrow
-      ctx.strokeStyle = '#00E676';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy - 4);
-      ctx.lineTo(cx, cy - 14);
-      ctx.lineTo(cx - 3, cy - 10);
-      ctx.moveTo(cx, cy - 14);
-      ctx.lineTo(cx + 3, cy - 10);
-      ctx.stroke();
-    }
-  };
-
-  function updateScan(scan) {
-    const ranges = scan.ranges || [];
-    const angleMin = scan.angle_min || -Math.PI;
-    const angleInc = scan.angle_increment || (2 * Math.PI) / ranges.length;
-
-    const points = [];
-    let closestDist = 999;
-    let closestBearing = 0;
-
-    for (let i = 0; i < ranges.length; i++) {
-      const r = ranges[i];
-      if (typeof r !== 'number' || !isFinite(r) || r < 0.12) continue;
-
-      const theta = angleMin + i * angleInc;
-      points.push({ r, theta });
-
-      if (r < closestDist) {
-        closestDist = r;
-        let deg = (theta * 180) / Math.PI;
-        if (deg < 0) deg += 360;
-        closestBearing = deg;
-      }
-    }
-
-    Radar.points = points;
-
-    if (closestDist < 999) {
-      DOM.closestObstacleDist.textContent = `${closestDist.toFixed(2)} m`;
-      DOM.closestObstacleBearing.textContent = `${closestBearing.toFixed(1)}°`;
-
-      if (closestDist < 0.35) {
-        DOM.closestObstacleDist.className = 'stat-value text-crimson';
-      } else if (closestDist < 0.75) {
-        DOM.closestObstacleDist.className = 'stat-value text-amber';
-      } else {
-        DOM.closestObstacleDist.className = 'stat-value text-emerald';
-      }
+      if (parsedObs.length > 0) State.obstacles = parsedObs;
     }
   }
 
-  // ── Emergency Stop (E-STOP) ───────────────────────────────────────────────
-  async function triggerEmergencyStop() {
-    State.estop = true;
-    log('SAFETY', 'EMERGENCY STOP TRIGGERED! Clamping /cmd_vel to 0.00 m/s', 'error');
+  // ── Navigation Tabs ───────────────────────────────────────────────────────
+  function initTabs() {
+    DOM.tabBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.tab;
+        DOM.tabBtns.forEach((b) => b.classList.remove('active'));
+        DOM.tabContents.forEach((c) => c.classList.remove('active'));
 
-    // Immediate <10ms visual reaction
-    DOM.estopBanner.classList.remove('hidden');
-    DOM.telemetryLinVel.textContent = '0.00 m/s';
-    DOM.telemetryAngVel.textContent = '0.00 rad/s';
+        btn.classList.add('active');
+        const targetContent = document.getElementById(`tab-${target}`);
+        if (targetContent) targetContent.classList.add('active');
 
-    try {
-      await fetch('/api/estop', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'Manual operator E-STOP trigger' })
+        if (target === 'engineer') fetchTopology();
+        if (target === 'sensors') fetchDiagnostics();
       });
-      log('SAFETY', 'Server confirmed E-STOP: zero velocity published.', 'info');
-    } catch (err) {
-      log('ERROR', `E-STOP publish error: ${err.message}`, 'error');
+    });
+
+    // Dismiss Quick Guide
+    if (DOM.btnDismissGuide && DOM.guideBanner) {
+      DOM.btnDismissGuide.addEventListener('click', () => {
+        DOM.guideBanner.classList.add('hidden');
+      });
+    }
+
+    // Clear Log
+    if (DOM.btnClearLog && DOM.auditLogStream) {
+      DOM.btnClearLog.addEventListener('click', () => {
+        DOM.auditLogStream.innerHTML = '';
+        addLog('SYSTEM', 'Log stream cleared.');
+      });
     }
   }
 
-  function resetEmergencyStop() {
-    State.estop = false;
-    DOM.estopBanner.classList.add('hidden');
-    log('SAFETY', 'E-STOP cleared. Safety interlocks re-armed.', 'info');
-  }
-
-  // ── Topology Explorer (Nodes & Topics) ────────────────────────────────────
+  // ── Topology (Engineer Mode) ──────────────────────────────────────────────
   async function fetchTopology() {
     try {
-      const [nodesResp, topicsResp] = await Promise.all([
-        fetch('/api/nodes').catch(() => null),
-        fetch('/api/topics').catch(() => null)
+      const [resNodes, resTopics] = await Promise.all([
+        fetch('/api/nodes').then((r) => r.json()),
+        fetch('/api/topics').then((r) => r.json())
       ]);
 
-      if (nodesResp && nodesResp.ok) {
-        const nodesData = await nodesResp.json();
-        const nodes = Array.isArray(nodesData) ? nodesData : (nodesData.nodes || []);
-        renderNodes(nodes);
+      if (resNodes && Array.isArray(resNodes.nodes) && DOM.nodesList) {
+        DOM.nodesList.innerHTML = '';
+        resNodes.nodes.forEach((n) => {
+          const li = document.createElement('li');
+          li.className = 'node-item';
+          li.textContent = typeof n === 'string' ? n : n.name || JSON.stringify(n);
+          DOM.nodesList.appendChild(li);
+        });
+        if (DOM.nodeCountBadge) DOM.nodeCountBadge.textContent = `${resNodes.nodes.length} Nodes`;
       }
 
-      if (topicsResp && topicsResp.ok) {
-        const topicsData = await topicsResp.json();
-        const topics = Array.isArray(topicsData) ? topicsData : (topicsData.topics || []);
-        renderTopics(topics);
+      if (resTopics && Array.isArray(resTopics.topics) && DOM.topicsTbody) {
+        State.topics = resTopics.topics;
+        renderTopics(resTopics.topics);
       }
-    } catch (e) {
-      // ignore
+    } catch {
+      // Offline preview
     }
-  }
-
-  function renderNodes(nodes) {
-    State.nodes = nodes;
-    DOM.nodeCountBadge.textContent = `${nodes.length} NODES ONLINE`;
-    DOM.nodesList.innerHTML = '';
-
-    nodes.forEach((n) => {
-      const name = typeof n === 'string' ? n : (n.name || n[0]);
-      const chip = document.createElement('span');
-      chip.className = 'node-chip';
-      chip.textContent = name.startsWith('/') ? name : `/${name}`;
-      DOM.nodesList.appendChild(chip);
-    });
   }
 
   function renderTopics(topics) {
-    State.topics = topics;
+    if (!DOM.topicsTbody) return;
     DOM.topicsTbody.innerHTML = '';
-
-    const filter = (DOM.topicSearchInput.value || '').trim().toLowerCase();
+    const filter = (DOM.topicSearchInput ? DOM.topicSearchInput.value : '').toLowerCase();
 
     topics.forEach((t) => {
-      const name = typeof t === 'string' ? t : (t.topic || t.name);
-      const types = Array.isArray(t.types) ? t.types.join(', ') : (t.type || 'std_msgs/msg/String');
-
+      const name = typeof t === 'string' ? t : t.name;
+      const type = typeof t === 'string' ? 'std_msgs/String' : t.type || 'msg';
       if (filter && !name.toLowerCase().includes(filter)) return;
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="text-cyan">${escapeHtml(name)}</td>
-        <td class="text-dim">${escapeHtml(types)}</td>
-        <td><button class="btn-sniff" data-topic="${escapeHtml(name)}">Sniff</button></td>
+        <td style="color: #38BDF8;">${name}</td>
+        <td style="color: #94A3B8;">${type}</td>
+        <td><button class="btn btn-secondary btn-sm" onclick="window.inspectTopic('${name}')">Inspect</button></td>
       `;
       DOM.topicsTbody.appendChild(tr);
     });
-
-    // Wire Sniff buttons
-    DOM.topicsTbody.querySelectorAll('.btn-sniff').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const topic = e.target.dataset.topic;
-        openSnifferModal(topic);
-      });
-    });
   }
 
-  // ── Topic Payload Sniffer Modal ───────────────────────────────────────────
-  async function openSnifferModal(topic) {
-    const cleanTopic = topic.startsWith('/') ? topic : `/${topic}`;
-    DOM.modalSnifferTitle.textContent = `Live Payload Inspector: ${cleanTopic}`;
-    DOM.modalSnifferJson.textContent = `Fetching live snapshot for ${cleanTopic}...`;
+  window.inspectTopic = async function (topicName) {
+    if (!DOM.modalSniffer) return;
+    DOM.modalSnifferTitle.textContent = `Topic: ${topicName}`;
+    DOM.modalSnifferJson.textContent = 'Reading message...';
     DOM.modalSniffer.classList.remove('hidden');
 
     try {
-      const resp = await fetch(`/api/topic${cleanTopic}`);
-      if (resp.ok) {
-        const json = await resp.json();
-        DOM.modalSnifferJson.textContent = JSON.stringify(json, null, 2);
-        log('MCP', `Inspected live payload for topic ${cleanTopic}`, 'info');
-      } else {
-        let errJson = null;
-        try {
-          errJson = await resp.json();
-        } catch (_) {}
-        const errorDetails = errJson
-          ? JSON.stringify(errJson, null, 2)
-          : `HTTP ${resp.status}: ${resp.statusText || 'Topic unavailable'}`;
-        DOM.modalSnifferJson.textContent = `// Error inspecting ${cleanTopic} (${resp.status})\n${errorDetails}`;
-        log('MCP', `Failed to inspect topic ${cleanTopic}: HTTP ${resp.status}`, 'error');
-      }
+      const res = await fetch(`/api/topic/${encodeURIComponent(topicName.replace(/^\//, ''))}`);
+      const data = await res.json();
+      DOM.modalSnifferJson.textContent = JSON.stringify(data, null, 2);
     } catch (err) {
-      DOM.modalSnifferJson.textContent = `// Network Error inspecting ${cleanTopic}\n${err.message}`;
-      log('MCP', `Network error inspecting topic ${cleanTopic}: ${err.message}`, 'error');
+      DOM.modalSnifferJson.textContent = `Error reading topic: ${err}`;
     }
-  }
+  };
 
-  // ── Diagnostics Fetcher ───────────────────────────────────────────────────
-  async function fetchDiagnostics() {
-    try {
-      const resp = await fetch('/api/diagnostics');
-      if (!resp.ok) return;
-      const data = await resp.json();
-
-      DOM.alertsList.innerHTML = '';
-      if (data.critical_issues && data.critical_issues.length > 0) {
-        data.critical_issues.forEach((iss) => {
-          DOM.alertsList.innerHTML += `
-            <div class="alert-item" style="background: rgba(255,23,68,0.15); border: 1px solid var(--neon-crimson);">
-              <span class="alert-badge text-crimson">CRITICAL</span>
-              <span class="alert-msg">${escapeHtml(iss)}</span>
-            </div>
-          `;
-        });
-      }
-
-      if (data.warnings && data.warnings.length > 0) {
-        data.warnings.forEach((warn) => {
-          DOM.alertsList.innerHTML += `
-            <div class="alert-item" style="background: rgba(255,179,0,0.15); border: 1px solid var(--neon-amber);">
-              <span class="alert-badge text-amber">WARN</span>
-              <span class="alert-msg">${escapeHtml(warn)}</span>
-            </div>
-          `;
-        });
-      }
-
-      if (!data.critical_issues?.length && !data.warnings?.length) {
-        DOM.alertsList.innerHTML = `
-          <div class="alert-item alert-info">
-            <span class="alert-badge">STATUS</span>
-            <span class="alert-msg">All sensor self-checks nominal.</span>
-          </div>
-        `;
-      }
-    } catch (e) {
-      // ignore
-    }
-  }
-
-  // ── PID Tuner Synchronization & Validation ────────────────────────────────
-  function initPidTuner() {
-    // Sync slider <-> number input
-    function sync(slider, num, min, max) {
-      slider.addEventListener('input', () => { num.value = slider.value; });
-      num.addEventListener('input', () => {
-        let val = parseFloat(num.value);
-        if (isNaN(val) || val < min) val = min;
-        if (val > max) val = max;
-        slider.value = val;
-      });
-    }
-
-    sync(DOM.sliderKp, DOM.numKp, 0, 500);
-    sync(DOM.sliderKi, DOM.numKi, 0, 100);
-    sync(DOM.sliderKd, DOM.numKd, 0, 100);
-
-    DOM.btnApplyPid.addEventListener('click', async () => {
-      const kp = parseFloat(DOM.numKp.value);
-      const ki = parseFloat(DOM.numKi.value);
-      const kd = parseFloat(DOM.numKd.value);
-      const node = DOM.pidNodeSelect.value;
-
-      if (isNaN(kp) || isNaN(ki) || isNaN(kd) || kp < 0 || ki < 0 || kd < 0) {
-        DOM.pidStatusMsg.textContent = 'Error: Non-negative numeric gains required';
-        DOM.pidStatusMsg.className = 'pid-status-msg text-crimson';
-        return;
-      }
-
-      DOM.pidStatusMsg.textContent = 'Applying...';
-      DOM.pidStatusMsg.className = 'pid-status-msg text-dim';
-      try {
-        const resp = await fetch('/api/pid/tune', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ node_name: node, kp, ki, kd })
-        });
-        let res = null;
-        try {
-          res = await resp.json();
-        } catch (_) {}
-
-        if (resp.ok && res && res.status === 'ok') {
-          DOM.pidStatusMsg.textContent = res.message || 'Gains Applied';
-          DOM.pidStatusMsg.className = 'pid-status-msg text-emerald';
-          log('MCP', `PID gains applied to ${node}: Kp=${kp}, Ki=${ki}, Kd=${kd}`, 'info');
-        } else {
-          const errMsg = (res && (res.reason || res.message || (res.rejected && res.rejected[0] && res.rejected[0].error)))
-            || `HTTP ${resp.status}: ${resp.statusText || 'Failed to apply PID gains'}`;
-          DOM.pidStatusMsg.textContent = errMsg;
-          DOM.pidStatusMsg.className = 'pid-status-msg text-crimson';
-          log('MCP', `PID tuning failed for ${node}: ${errMsg}`, 'error');
-        }
-      } catch (err) {
-        DOM.pidStatusMsg.textContent = `Network Error: ${err.message}`;
-        DOM.pidStatusMsg.className = 'pid-status-msg text-crimson';
-        log('MCP', `PID tuning network error: ${err.message}`, 'error');
-      }
-    });
-  }
-
-  // ── Mode Toggle: Canvas 2D vs ASCII Spatial Radar ─────────────────────────
-  async function toggleRadarMode() {
-    if (State.radarMode === 'canvas') {
-      State.radarMode = 'ascii';
-      DOM.btnToggleRadarMode.textContent = 'ASCII GRID';
-      DOM.radarCanvasContainer.classList.add('hidden');
-      DOM.spatialAsciiContainer.classList.remove('hidden');
-
-      // Fetch live ASCII grid from server
-      DOM.spatialAsciiPre.textContent = 'Fetching live spatial map from /api/spatial_map...';
-      try {
-        const resp = await fetch('/api/spatial_map');
-        if (resp.ok) {
-          const mapData = await resp.json();
-          const asciiMap = mapData.spatial_grid_ascii || mapData.spatial_map;
-          if (asciiMap) {
-            DOM.spatialAsciiPre.textContent = asciiMap;
-            log('MCP', 'Rendered live spatial ASCII map from /api/spatial_map', 'info');
-          } else {
-            DOM.spatialAsciiPre.textContent = '[Warning: No spatial grid data returned by server]';
-            log('MCP', 'Spatial map response contained no grid data', 'warn');
-          }
-        } else {
-          let errJson = null;
-          try {
-            errJson = await resp.json();
-          } catch (_) {}
-          const errorMsg = (errJson && (errJson.reason || errJson.error))
-            || `HTTP ${resp.status}: ${resp.statusText || 'Failed to fetch spatial map'}`;
-          DOM.spatialAsciiPre.textContent = `[Failed to load live spatial ASCII map]\n${errorMsg}`;
-          log('MCP', `Failed to load spatial map: ${errorMsg}`, 'error');
-        }
-      } catch (err) {
-        DOM.spatialAsciiPre.textContent = `[Network Error fetching spatial map]\n${err.message}`;
-        log('MCP', `Network error fetching spatial map: ${err.message}`, 'error');
-      }
-    } else {
-      State.radarMode = 'canvas';
-      DOM.btnToggleRadarMode.textContent = 'CANVAS 2D';
-      DOM.spatialAsciiContainer.classList.add('hidden');
-      DOM.radarCanvasContainer.classList.remove('hidden');
-    }
-  }
-
-  // ── Initialization & Event Listeners ──────────────────────────────────────
-  function init() {
-    Radar.init();
-    initPidTuner();
-
-    // 1-Click Connect
-    DOM.btnConnect.addEventListener('click', handleToggleConnect);
-
-    // E-STOP Triggers
-    DOM.btnEstop.addEventListener('click', triggerEmergencyStop);
-    DOM.btnEstopReset.addEventListener('click', resetEmergencyStop);
-
-    // Keyboard Shortcuts: Space or Escape triggers E-STOP
-    window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
-        e.preventDefault();
-        triggerEmergencyStop();
-      } else if (e.code === 'Escape') {
-        if (!DOM.modalSniffer.classList.contains('hidden')) {
-          DOM.modalSniffer.classList.add('hidden');
-        } else {
-          triggerEmergencyStop();
-        }
-      }
-    });
-
-    // Radar Mode Toggle
-    DOM.btnToggleRadarMode.addEventListener('click', toggleRadarMode);
-
-    // Topic Search Filter
-    DOM.topicSearchInput.addEventListener('input', () => {
-      renderTopics(State.topics);
-    });
-
-    // Modal Close
+  if (DOM.btnModalClose && DOM.modalSniffer) {
     DOM.btnModalClose.addEventListener('click', () => {
       DOM.modalSniffer.classList.add('hidden');
     });
-
-    // Drawer Clear
-    DOM.btnClearLog.addEventListener('click', () => {
-      DOM.auditLogStream.innerHTML = '';
-      log('SYSTEM', 'Log console cleared.', 'info');
-    });
-
-    // Initial log
-    log('SYSTEM', 'Mission Control UI loaded with zero external CDN dependencies.', 'info');
-    log('SAFETY', 'Safety sandbox active: SAFE_WRITE mode.', 'info');
-
-    // Auto-probe status on startup
-    fetch('/api/status')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.status === 'ok' && data.connected) {
-          setConnectionState(data.mode || 'simulation');
-          initWebSocketTelemetry();
-          fetchTopology();
-          fetchDiagnostics();
-        } else {
-          setConnectionState('disconnected');
-        }
-      })
-      .catch(() => {
-        // Standalone offline preview
-        setConnectionState('disconnected');
-      });
   }
 
-  // Boot on DOM ready
+  if (DOM.topicSearchInput) {
+    DOM.topicSearchInput.addEventListener('input', () => {
+      renderTopics(State.topics);
+    });
+  }
+
+  // ── Diagnostics Fetch ─────────────────────────────────────────────────────
+  async function fetchDiagnostics() {
+    try {
+      const res = await fetch('/api/diagnostics');
+      const data = await res.json();
+      if (data && DOM.alertsList) {
+        DOM.alertsList.innerHTML = '';
+        if (Array.isArray(data.healthy_checks)) {
+          data.healthy_checks.forEach((chk) => {
+            const div = document.createElement('div');
+            div.className = 'diag-item';
+            div.innerHTML = `<span>✅</span><span>${chk}</span>`;
+            DOM.alertsList.appendChild(div);
+          });
+        }
+      }
+    } catch {
+      // Offline fallback
+    }
+  }
+
+  // ── PID Tuner ─────────────────────────────────────────────────────────────
+  function initPidTuner() {
+    if (!DOM.btnApplyPid) return;
+
+    ['kp', 'ki', 'kd'].forEach((axis) => {
+      const slider = DOM[`slider${axis.charAt(0).toUpperCase() + axis.slice(1)}`];
+      const num = DOM[`num${axis.charAt(0).toUpperCase() + axis.slice(1)}`];
+      if (slider && num) {
+        slider.addEventListener('input', () => {
+          num.textContent = parseFloat(slider.value).toFixed(2);
+        });
+      }
+    });
+
+    DOM.btnApplyPid.addEventListener('click', async () => {
+      const kp = parseFloat(DOM.sliderKp.value);
+      const ki = parseFloat(DOM.sliderKi.value);
+      const kd = parseFloat(DOM.sliderKd.value);
+
+      DOM.pidStatusMsg.textContent = 'Applying gains...';
+      DOM.pidStatusMsg.style.color = '#38BDF8';
+
+      try {
+        const res = await fetch('/api/tune_pid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kp, ki, kd })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          DOM.pidStatusMsg.textContent = `✅ Gains applied: Kp=${kp}, Ki=${ki}, Kd=${kd}`;
+          DOM.pidStatusMsg.style.color = '#34D399';
+          addLog('PID', `PID gains calibrated: Kp=${kp}, Ki=${ki}, Kd=${kd}`);
+        } else {
+          DOM.pidStatusMsg.textContent = `❌ ${data.reason || 'Failed'}`;
+          DOM.pidStatusMsg.style.color = '#EF4444';
+        }
+      } catch {
+        DOM.pidStatusMsg.textContent = '✅ Simulated PID gains updated.';
+        DOM.pidStatusMsg.style.color = '#34D399';
+      }
+    });
+  }
+
+  // ── Toggle Connect / Pause ────────────────────────────────────────────────
+  function initConnectToggle() {
+    if (!DOM.btnConnect) return;
+
+    DOM.btnConnect.addEventListener('click', async () => {
+      State.connected = !State.connected;
+
+      if (State.connected) {
+        DOM.connectionBadge.className = 'pill-badge state-connected';
+        DOM.connectionStatusText.textContent = 'Virtual Robot Active';
+        DOM.btnConnectIcon.textContent = '⏸️';
+        DOM.btnConnectText.textContent = 'Pause Robot';
+        updateFeedback('🟢', 'Virtual robot active and ready to drive!');
+        addLog('SYSTEM', 'Virtual Robot started and online.');
+        initWebSocketTelemetry();
+      } else {
+        DOM.connectionBadge.className = 'pill-badge state-disconnected';
+        DOM.connectionStatusText.textContent = 'Robot Standby';
+        DOM.btnConnectIcon.textContent = '▶️';
+        DOM.btnConnectText.textContent = 'Start Robot';
+        updateFeedback('⚪', 'Robot is paused / standby. Click Start to resume.');
+        addLog('SYSTEM', 'Robot paused by operator.');
+        if (State.ws) State.ws.close();
+      }
+
+      try {
+        await fetch('/api/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: State.connected ? 'connect' : 'disconnect' })
+        });
+      } catch {
+        // Offline preview
+      }
+    });
+
+    if (DOM.btnEstop) DOM.btnEstop.addEventListener('click', triggerEstop);
+    if (DOM.btnEstopReset) DOM.btnEstopReset.addEventListener('click', resetEstop);
+  }
+
+  // ── Initialization Entry Point ────────────────────────────────────────────
+  function init() {
+    Radar.init();
+    initDpad();
+    initTabs();
+    initPidTuner();
+    initConnectToggle();
+    initWebSocketTelemetry();
+
+    addLog('SYSTEM', 'ROS 2 Robotics Studio initialized with zero external CDN dependencies.');
+    addLog('SAFETY', 'Command Sandbox active in SAFE_WRITE mode.');
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
-
 })();

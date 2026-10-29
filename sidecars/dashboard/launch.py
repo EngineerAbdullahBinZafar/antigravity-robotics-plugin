@@ -26,7 +26,7 @@ if os.path.isdir(venv_site_packages) and venv_site_packages not in sys.path:
 
 # 3. Verify aiohttp availability or re-exec with venv python
 try:
-    import aiohttp
+    import aiohttp  # noqa: F401
 except ImportError:
     venv_python = os.path.join(plugin_root, ".venv", "Scripts", "python.exe")
     if os.path.isfile(venv_python) and sys.executable.lower() != venv_python.lower():
@@ -37,7 +37,7 @@ except ImportError:
         raise
 
 # 4. Launch the dashboard server
-from ros2_mcp.dashboard.server import main
+from ros2_mcp.dashboard.server import main  # noqa: E402
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Set
 from aiohttp import WSCloseCode, WSMsgType, web
 
 from ..ros2_interface import create_interface
-from ..sandbox import CommandSandbox, SafetyLevel
+from ..sandbox import CommandSandbox, SafetyLevel, SandboxBlockedError
 from ..tools import (
     handle_get_spatial_map,
     handle_system_diagnostics,
@@ -551,6 +551,89 @@ async def api_estop(request: web.Request) -> web.Response:
     )
 
 
+async def api_drive(request: web.Request) -> web.Response:
+    """POST /api/drive -> High-level drive command (linear_x, angular_z) published to /cmd_vel."""
+    state: AppState = request.app[STATE_KEY]
+    interface = state.interface
+    sandbox = state.sandbox
+
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    if not isinstance(data, dict):
+        return web.json_response({"status": "error", "reason": "Payload must be a JSON object"}, status=400)
+
+    try:
+        linear_x = float(data.get("linear_x", 0.0))
+        angular_z = float(data.get("angular_z", 0.0))
+    except (TypeError, ValueError):
+        return web.json_response({"status": "error", "reason": "linear_x and angular_z must be numbers"}, status=400)
+
+    # Clamp to safe bounds for interactive operation
+    linear_x = max(-2.0, min(2.0, linear_x))
+    angular_z = max(-3.0, min(3.0, angular_z))
+
+    payload = {
+        "linear": {"x": linear_x, "y": 0.0, "z": 0.0},
+        "angular": {"x": 0.0, "y": 0.0, "z": angular_z},
+        "linear_x": linear_x,
+        "angular_z": angular_z,
+    }
+
+    try:
+        sandbox.check_publish("/cmd_vel", payload)
+    except SandboxBlockedError as e:
+        return web.json_response({"status": "error", "reason": str(e)}, status=403)
+
+    res_pub = interface.publish_topic("/cmd_vel", "geometry_msgs/Twist", payload)
+
+    return web.json_response(
+        {
+            "status": "ok",
+            "linear_x": linear_x,
+            "angular_z": angular_z,
+            "details": str(res_pub),
+            "timestamp": time.time(),
+        }
+    )
+
+
+async def api_publish(request: web.Request) -> web.Response:
+    """POST /api/publish -> Publishes payload to arbitrary allowed ROS 2 topic."""
+    state: AppState = request.app[STATE_KEY]
+    interface = state.interface
+    sandbox = state.sandbox
+
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"status": "error", "reason": "Invalid JSON"}, status=400)
+
+    if not isinstance(data, dict):
+        return web.json_response({"status": "error", "reason": "Payload must be a JSON object"}, status=400)
+
+    topic = str(data.get("topic", "/cmd_vel"))
+    msg_type = str(data.get("msg_type", "geometry_msgs/Twist"))
+    payload = data.get("payload", {})
+
+    try:
+        sandbox.check_publish(topic, payload)
+    except SandboxBlockedError as e:
+        return web.json_response({"status": "error", "reason": str(e)}, status=403)
+
+    res_pub = interface.publish_topic(topic, msg_type, payload)
+    return web.json_response(
+        {
+            "status": "ok",
+            "topic": topic,
+            "result": str(res_pub),
+            "timestamp": time.time(),
+        }
+    )
+
+
 async def api_tune_pid(request: web.Request) -> web.Response:
     """POST /api/tune_pid -> Validates and applies PID gains through sandbox guardrails."""
     try:
@@ -761,6 +844,8 @@ def create_app(
     app.router.add_get("/api/topic/{topic:.+}", api_topic)
     app.router.add_get("/api/spatial_map", api_spatial_map)
     app.router.add_post("/api/estop", api_estop)
+    app.router.add_post("/api/drive", api_drive)
+    app.router.add_post("/api/publish", api_publish)
     app.router.add_post("/api/tune_pid", api_tune_pid)
     app.router.add_post("/api/pid/tune", api_tune_pid)
     app.router.add_get("/api/diagnostics", api_diagnostics)
