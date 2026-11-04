@@ -1,0 +1,48 @@
+# Antigravity ROS 2 Robotics Plugin — Full Technical Context
+
+> Native Antigravity Plugin and Model Context Protocol (MCP) server for ROS 2 autonomous robotics.
+
+## Core Capabilities
+antigravity-robotics-plugin exposes 16 JSON-RPC 2.0 MCP tools allowing AI models to safely inspect, tune, and control ROS 2 robotic nodes, topics, parameters, and actuators.
+
+## 3-Tier Security Sandbox Specification
+- `read_only`: Prohibits all actuator writes. publish_topic, set_parameter, and tune_pid raise SandboxBlockedError.
+- `safe_write`: Default mode. Permits writes strictly to allowlisted topics (/cmd_vel, /target_velocity, /led_state) and bounded velocity ranges.
+- `full`: Unrestricted writes. Permitted only in simulated environments or bench testing.
+
+## MCP Tools Reference Table
+1. ping(): Verify server and ROS 2 network connectivity.
+2. system_diagnostics(): Return battery voltage, CPU load, and node health.
+3. list_nodes(): List active ROS 2 graph nodes.
+4. get_node_info(node_name): Inspect publishers, subscribers, and service servers.
+5. list_topics(): Enumerate all active DDS topics with message types.
+6. read_topic(topic_name, count): Read the latest published message payloads.
+7. publish_topic(topic_name, message): Safely publish a JSON-formatted ROS 2 message.
+8. get_parameter(node_name, param_name): Retrieve node parameter values.
+9. set_parameter(node_name, param_name, value): Set a node parameter value.
+10. get_pid_state(node_name): Query controller proportional, integral, and derivative gains.
+11. tune_pid(node_name, kp, ki, kd): Dynamically adjust controller PID gains with non-negative clamping.
+12. predict_trajectory(cmd_vel, horizon_sec): Run 1000Hz kinematic forward simulation for TTC estimation.
+13. predictive_safety_check(cmd_vel): Validate control input against workspace boundary invariants.
+14. get_spatial_map(): Generate 2D ASCII radar scan from 360-degree LiDAR pointclouds.
+15. swarm_fleet_status(): Query multi-robot swarm fleet namespaces (/drone_1, /rover_2).
+16. get_robot_snapshot(): Comprehensive aggregated telemetry snapshot.
+
+## Mathematical Formulations
+- Discrete PID with Anti-Windup Clamping:
+  u[k] = sat(P[k] + I[k] + D[k], u_min, u_max)
+  with integrator clamping:
+  I[k] = I[k-1] if (v[k] > u_max and e[k] > 0) or (v[k] < u_min and e[k] < 0) else I[k-1] + Ki * Ts * e[k]
+- Non-Holonomic Unicycle Kinematics:
+  Turning arc: R = v / omega
+  Straight-line limit (omega -> 0): x(t + dt) = x(t) + v * cos(theta) * dt, y(t + dt) = y(t) + v * sin(theta) * dt
+- 1000Hz Fast-Forward Trajectory Preview TTC:
+  TTC = (d - d_safe) / ||v||
+- 2D LiDAR Polar-to-Cartesian SE(3) to ASCII Radar:
+  gx = c - round((r / r_max) * c * cos(theta))
+  gy = c - round((r / r_max) * c * sin(theta))
+
+## Verification & Testing
+Run automated pytest suite:
+`pytest tests/ -v`
+152/152 passing tests covering manifest validation, MCP schema compliance, and sandbox mutex thread-safety.
