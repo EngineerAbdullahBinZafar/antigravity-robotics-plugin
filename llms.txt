@@ -1,0 +1,23 @@
+# Antigravity ROS 2 Robotics Plugin
+
+> Native Google Antigravity Plugin and Model Context Protocol (MCP) server providing real-time telemetry, 2D LiDAR radar, 3-tier command sandboxing, and Gazebo simulation control for ROS 2 robotics.
+
+## Documentation
+- [Overview & Quickstart](README.md): Installation, quickstart guide, aerospace color palette, and Antigravity IDE setup.
+- [Plugin Manifest](plugin.json): Antigravity native plugin schema v1.0.0, extension points, and tool registrations.
+- [MCP Server Configuration](mcp_config.json): Stdio command configurations, arguments, and environment variables.
+
+## Architecture & Key Concepts
+- [Multi-Layer Architecture](README.md#architectural-topology): Multi-layer agentic reasoning, C++ lifecycle node (antigravity_core), RViz2 panel, and Gazebo microgravity digital twin.
+- [Security Sandbox](ros2_mcp/sandbox.py): 3-tier safety guardrails (read_only, safe_write, full) and thread-safe audit logging.
+- [Dual ROS 2 Backend](ros2_mcp/ros2_interface.py): Zero-dependency MockInterface fallback and ROS2NativeInterface rclpy integration.
+
+## APIs & Tools
+- [Diagnostics & Telemetry Tools](README.md#16-standard-robotics-tools): ping, system_diagnostics, get_robot_snapshot.
+- [Topic & Node Tools](README.md#16-standard-robotics-tools): list_nodes, get_node_info, list_topics, read_topic, publish_topic.
+- [Control & Tuning Tools](README.md#16-standard-robotics-tools): get_parameter, set_parameter, get_pid_state, tune_pid.
+- [Spatial & Swarm Tools](README.md#16-standard-robotics-tools): predict_trajectory, predictive_safety_check, get_spatial_map, swarm_fleet_status.
+
+## Optional
+- [Interactive Dashboard Sidecar](sidecars/dashboard/sidecar.json): Embedded Aux Pane web station specifications.
+- [Verification Test Suite](tests/): 152 automated pytest test cases validating schemas, tools, and mock interfaces.

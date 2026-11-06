@@ -1,0 +1,145 @@
+# antigravity-robotics-plugin — Full Context Specification
+
+> Native Google Antigravity Plugin, Model Context Protocol (MCP) Server, and Zero-G Aerospace Suite for ROS 2 Autonomous Robotics.
+
+## 1. System Overview & Architecture
+
+`antigravity-robotics-plugin` (v1.2.0) is a comprehensive cyber-physical robotics plugin connecting AI models to ROS 2 (Humble / Jazzy). It provides a complete 5-layer physical AI stack:
+1. **AI-Agentic Mission Supervisor (Python MCP)**: 16 high-level MCP tools for automated diagnosis, safety checks, and telemetry control over JSON-RPC 2.0 stdio.
+2. **Interactive Zero-G Web Dashboard Sidecar**: 4-tab aerospace control station docking right inside the Antigravity IDE Aux Pane (`sidecar://antigravity-robotics-plugin/dashboard/index.html`).
+3. **C++ Lifecycle Node (`antigravity_core`)**: Mission-critical deterministic FSM (`Unconfigured` -> `Configuring` -> `Inactive` -> `Active` -> `Finalized`) with a 250ms hardware watchdog.
+4. **Native RViz2 Qt Panel Plugin (`antigravity_rviz_panel`)**: Desktop companion panel embedding Zero-G velocity gauges and E-STOP directly into desktop RViz2.
+5. **Gazebo Harmonic Zero-G Simulation (`sim/`)**: Orbital microgravity world with 6-DOF thruster dynamics, celestial lighting, and obstacle docking courses.
+
+## 2. Manifest Specification (`plugin.json`)
+
+```json
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "antigravity-robotics-plugin",
+  "displayName": "Antigravity ROS 2 Robotics",
+  "version": "1.2.0",
+  "description": "Native Antigravity plugin for ROS 2 robotics telemetry, node/topic monitoring, PID tuning, trajectory prediction, and interactive web dashboard.",
+  "logo": "assets/logo.svg",
+  "author": {
+    "name": "Abdullah Bin Zafar",
+    "url": "https://github.com/EngineerAbdullahBinZafar"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "ros2", "robotics", "mcp", "telemetry", "dashboard", "pid-tuning", "simulation", "antigravity"
+  ],
+  "suggestedPrompts": [
+    "Run system diagnostics on the robot and check battery, LiDAR, and IMU health",
+    "Open the ROS 2 Robotics Dashboard and monitor active topics and nodes",
+    "Simulate trajectory and verify predictive safety bounds before publishing velocity commands"
+  ],
+  "disabled": false
+}
+```
+
+## 3. Sidecar Configuration (`sidecars/dashboard/sidecar.json`)
+
+```json
+{
+  "command": "python",
+  "args": ["-m", "ros2_mcp.dashboard.server"],
+  "env": {
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONPATH": "../..;."
+  },
+  "restart_policy": "always",
+  "display_name": "ROS 2 Robotics Dashboard",
+  "description": "Interactive telemetry dashboard for ROS 2 MCP Server with real-time 360° LiDAR radar, node/topic explorer, and 1-click connection.",
+  "has_web_ui": true,
+  "ui_config": {
+    "display_name": "ROS 2 Robotics Dashboard",
+    "views": [
+      {
+        "title": "ROS 2 Telemetry & Control",
+        "path": "/index.html",
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE"
+      }
+    ]
+  }
+}
+```
+
+## 4. MCP Tools & Input Schemas (16 Tools)
+
+### 4.1 System & Graph Introspection
+- `ping`: Verify bridge connectivity. Input: `{}`. Returns: `{"status": "ok", "active_nodes": int, "latency_ms": float}`.
+- `system_diagnostics`: Comprehensive health diagnostics. Input: `{}`. Returns: battery percentage, voltage, LiDAR status, IMU health, critical issues, and warnings.
+- `list_topics`: Discover active topics and types. Input: `{}`. Returns list of `{"name": str, "type": str}`.
+- `read_topic`: Read latest topic message. Input: `{"topic": str, "msg_type": str (opt), "timeout_ms": int (opt), "latched": bool (opt)}`. Returns serialized payload and message age.
+- `publish_topic`: Publish message payload. Input: `{"topic": str, "msg_type": str, "payload": dict}`. Governed by `CommandSandbox`.
+- `list_nodes`: List discovered nodes and namespaces. Input: `{}`.
+- `get_node_info`: Query publishers, subscribers, services, and action servers for a node. Input: `{"node_name": str}`.
+- `get_parameter`: Read node parameter value. Input: `{"node_name": str, "param_name": str}`.
+- `set_parameter`: Update node parameter. Input: `{"node_name": str, "param_name": str, "value": any}`.
+- `get_robot_snapshot`: Parallel multi-sensor state aggregation. Input: `{}`.
+
+### 4.2 Control & Physical AI Innovation
+- `get_pid_state`: Read Kp, Ki, Kd gains and safety bounds. Input: `{"node_name": str, "kp_param": str, "ki_param": str, "kd_param": str}`.
+- `tune_pid`: Validate and apply PID gains. Input: `{"node_name": str, "kp": float (opt), "ki": float (opt), "kd": float (opt)}`. Validates $K \ge 0$.
+- `predict_trajectory`: 1000Hz fast-forward kinematic unicycle trajectory simulation. Input: `{"linear_x": float, "angular_z": float, "dt_sec": float}`. Computes ending pose $(x, y, \theta)$ and safety risk score.
+- `predictive_safety_check`: Evaluates proposed parameters or commands against stability constraints. Input: `{"command_type": str, "target": str, "proposed_value": any}`. Returns evaluated safe value and control-theory proof.
+- `get_spatial_map`: Converts 360° LiDAR ranges into a 2D ASCII radar grid. Input: `{"scan_topic": str, "grid_size": int}`. Returns ASCII grid, sector clearance (front, left, right), and closest obstacle bearing.
+- `swarm_fleet_status`: Discovers multi-robot namespaces (`/drone_1`, `/rover_2`) and aggregates fleet telemetry. Input: `{}`.
+
+## 5. Mathematical Formulations
+
+### 5.1 Discrete PID with Anti-Windup Clamping & Conditional Integration
+Error: $e_k = r_k - y_k$.
+Raw output: $u_{\text{raw}, k} = K_p e_k + I_k + K_d \frac{e_k - e_{k-1}}{\Delta t}$.
+Actuator clamping: $u_k = \operatorname{clamp}(u_{\text{raw}, k}, u_{\min}, u_{\max})$.
+Conditional Integration:
+$$I_{k+1} = \begin{cases}
+I_k + K_i e_k \Delta t, & \text{if } u_{\min} \le u_{\text{raw}, k} \le u_{\max} \\
+I_k + K_i e_k \Delta t, & \text{if } (u_{\text{raw}, k} > u_{\max} \land e_k < 0) \lor (u_{\text{raw}, k} < u_{\min} \land e_k > 0) \\
+I_k, & \text{otherwise}
+\end{cases}$$
+
+### 5.2 Planar Unicycle Kinematics & Prediction
+$$\dot{x} = v \cos\theta, \quad \dot{y} = v \sin\theta, \quad \dot{\theta} = \omega$$
+When $\omega \neq 0$:
+$$x_{k+1} = x_k + \frac{v}{\omega}[\sin(\theta_k + \omega \Delta t) - \sin\theta_k]$$
+$$y_{k+1} = y_k - \frac{v}{\omega}[\cos(\theta_k + \omega \Delta t) - \cos\theta_k]$$
+$$\theta_{k+1} = \theta_k + \omega \Delta t$$
+
+### 5.3 Time-To-Collision (TTC) Bounds
+$$\mathrm{TTC}(t) = \frac{\|\mathbf{p}_{\text{obs}} - \mathbf{p}_{\text{robot}}(t)\|}{\|\mathbf{v}(t)\| \cos\phi(t)}, \quad \text{for } \cos\phi(t) > 0$$
+Braking distance invariant: $\|\mathbf{d}(t)\| \ge \frac{v^2}{2 a_{\max}} + v \tau_{\text{latency}} + R_{\text{robot}} + \delta_{\text{margin}}$.
+
+### 5.4 6-DOF Orbital Thruster Dynamics
+$$\mathbf{F}_{\text{net}} = \sum_{i=1}^6 \mathbf{F}_i = m \ddot{\mathbf{x}}, \quad \boldsymbol{\tau}_{\text{net}} = \mathbf{I} \dot{\boldsymbol{\omega}} + \boldsymbol{\omega} \times (\mathbf{I}\boldsymbol{\omega})$$
+
+## 6. C++ Lifecycle Controller (`antigravity_core`)
+
+- Class: `rclcpp_lifecycle::LifecycleNode`
+- FSM States:
+  - `on_configure`: loads parameters (`max_thrust_n`, `damping_factor`, `watchdog_timeout_ms`), instantiates publishers (`/antigravity/thrust_cmd`, `/antigravity/lifecycle_state`), subscribes to `/cmd_vel`, `/antigravity/estop`, `/imu`.
+  - `on_activate`: activates lifecycle publishers, starts 50Hz watchdog timer (`evaluate_watchdog`).
+  - `on_deactivate`: cancels watchdog timer, publishes zero wrench, transitions to `INACTIVE`.
+  - `on_cleanup`: resets all publishers and subscribers.
+  - `on_shutdown`: safe hardware de-energization.
+- Watchdog: If elapsed time since last `/cmd_vel` exceeds `watchdog_timeout_ms` (250ms), thruster command is clamped to 0.0 N.
+- E-STOP: On `/antigravity/estop` true, immediately publishes zero wrench and blocks commands.
+
+## 7. Interactive 4-Tab Web Dashboard
+
+- **Tab 1: Drive & Radar (`tab-drive`)**: Interactive D-pad teleoperation with keyboard hotkeys (Arrow keys, Spacebar), speed toggle chips (0.2, 0.5, 1.0 m/s), 360° LiDAR radar canvas (`#lidar-canvas`), proximity badge, front clearance metric.
+- **Tab 2: Sensors & Health (`tab-sensors`)**: Battery meter bar, voltage (24.2V), current (-3.4A), nominal status; 3D IMU orientation (Roll, Pitch, Yaw), Z-acceleration (9.81 m/s²); diagnostic alert list.
+- **Tab 3: Engineer Mode (`tab-engineer`)**: Active ROS 2 node list, topic table with live search and JSON modal sniffer, PID loop tuner with sliders for $K_p, K_i, K_d$.
+- **Tab 4: Activity Log (`tab-logs`)**: Real-time event and audit log stream with clear log functionality.
+- Sidecar URI: `sidecar://antigravity-robotics-plugin/dashboard/index.html`.
+
+## 8. Automated Verification Suite
+
+All 152 automated tests pass with 100% success rate (`pytest tests/ -v`):
+- `test_plugin_manifest.py`: Manifest schema and asset presence.
+- `test_server.py`: Tool dispatch and JSON-RPC compliance.
+- `test_dashboard_api.py`: HTTP REST and telemetry feeds.
+- `test_live_ws_stress_m2.py`: 20Hz continuous streaming under load.
+- `test_adversarial_m1.py` & `test_adversarial_m2.py`: Robustness against invalid inputs and socket drops.
+- `test_empirical_benchmarks.py`: Latency benchmarks (<30ms connect, <5ms dispatch).
