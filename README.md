@@ -1,5 +1,9 @@
 <div align="center">
 
+<p align="center">
+  <img src="assets/banner.png" alt="Antigravity ROS 2 Robotics Plugin — Native Antigravity IDE Plugin and Model Context Protocol Server with Real-Time Dashboard by Engineer Abdullah Bin Zafar" width="100%" />
+</p>
+
 <img src="assets/logo.svg" alt="Antigravity Robotics Plugin Logo" width="160" height="160" />
 
 # Antigravity ROS 2 Robotics Plugin
