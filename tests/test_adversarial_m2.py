@@ -390,8 +390,9 @@ class TestStdioIsolationAdversarial:
                 with urllib.request.urlopen(f"http://127.0.0.1:{test_port}/") as resp:
                     assert resp.status == 200
 
-            # Close stdin to trigger graceful shutdown
+            # Close stdin to trigger graceful shutdown cleanly across Python 3.11+ Linux/Windows
             proc.stdin.close()
+            proc.stdin = None
 
             # Read all stdout and stderr
             stdout_data, stderr_data = proc.communicate(timeout=6)

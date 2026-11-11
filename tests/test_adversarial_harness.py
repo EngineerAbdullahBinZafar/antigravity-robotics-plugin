@@ -12,9 +12,10 @@ import subprocess
 import sys
 import threading
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-PLUGIN_DIR = r"C:\Users\star\.gemini\config\plugins\antigravity-robotics-plugin"
+PLUGIN_DIR = str(Path(__file__).resolve().parent.parent)
 
 
 class StdioHarness:
