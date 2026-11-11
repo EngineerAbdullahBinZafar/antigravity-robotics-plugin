@@ -11,6 +11,7 @@
 
 **Native Antigravity Plugin, Model Context Protocol (MCP) Server & Zero-G Aerospace Suite for ROS 2 Autonomous Robotics**
 
+[![CI Status](https://github.com/EngineerAbdullahBinZafar/antigravity-robotics-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/EngineerAbdullahBinZafar/antigravity-robotics-plugin/actions/workflows/ci.yml)
 [![Antigravity Plugin](https://img.shields.io/badge/Antigravity-Native%20Plugin-00F0FF?style=for-the-badge&logo=google&logoColor=white)](https://github.com/EngineerAbdullahBinZafar/antigravity-robotics-plugin)
 [![Tests Passing](https://img.shields.io/badge/Tests-152%2F152%20Passing%20(100%25)-00FFA3?style=for-the-badge&logo=pytest&logoColor=black)](tests/)
 [![Security Sandbox](https://img.shields.io/badge/Sandbox-3--Tier%20Guardrails-FF9100?style=for-the-badge&logo=shield&logoColor=white)](ros2_mcp/sandbox.py)
@@ -501,35 +502,6 @@ antigravity-robotics-plugin/
 │   └── launch/                    # ROS 2 Gazebo simulation launch pipeline
 └── tests/                         # 152 passing automated tests
 ```
-
----
-
-<details>
-<summary>🤖 <b>Machine-Readable Metadata (Schema.org JSON-LD)</b></summary>
-
-```json
-{
-  "@context": "https://schema.org",
-  "@type": ["SoftwareSourceCode", "SoftwareApplication"],
-  "name": "antigravity-robotics-plugin",
-  "alternateName": "Antigravity ROS 2 Robotics Plugin",
-  "version": "1.2.0",
-  "description": "Native Google Antigravity Plugin and Model Context Protocol (MCP) server providing real-time telemetry, 2D LiDAR radar, 3-tier command sandboxing, C++ lifecycle controller, RViz2 Qt panel, and Gazebo Zero-G simulation for ROS 2 robotics.",
-  "programmingLanguage": ["Python", "C++", "JavaScript", "HTML5", "CSS3"],
-  "codeRepository": "https://github.com/EngineerAbdullahBinZafar/antigravity-robotics-plugin",
-  "license": "https://opensource.org/licenses/Apache-2.0",
-  "author": {
-    "@type": "Person",
-    "name": "Abdullah Bin Zafar",
-    "url": "https://github.com/EngineerAbdullahBinZafar"
-  },
-  "applicationCategory": "DeveloperApplication",
-  "operatingSystem": "Linux, ROS 2 (Humble, Jazzy)",
-  "keywords": "antigravity-plugin, ros2, mcp, model-context-protocol, robotics, web-dashboard, lidar-radar, telemetry, pid-tuning, aerospace, gazebo, rviz2"
-}
-```
-
-</details>
 
 ---
 

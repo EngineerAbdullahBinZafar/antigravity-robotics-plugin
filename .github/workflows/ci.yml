@@ -1,0 +1,31 @@
+name: CI — Antigravity Robotics Plugin & C++ ROS 2 Core
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-python-mcp:
+    name: 🌌 Pytest Suite (152 Tests) & Ruff Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip'
+
+      - name: Install package with rosbridge, dashboard & dev extras
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[rosbridge,dashboard,dev]"
+
+      - name: Lint critical errors with Ruff
+        run: ruff check ros2_mcp tests --select=E9,F63,F7,F82
+
+      - name: Run 152-test async & adversarial suite
+        run: pytest tests/ -v --tb=short
